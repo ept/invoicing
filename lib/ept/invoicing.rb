@@ -51,7 +51,7 @@ module Ept
             external = ::Ept::Invoicing::Utils.round_to_currency_precision(external)
             
             if external != value
-              @taxed_attr_error[fieldname] = (external > @taxed_attr_values[fieldname]) ? :high : :low
+              @taxed_attr_error[method_name] = (external > @taxed_attr_values[method_name]) ? :high : :low
             end
           
             @taxed_attr_values[method_name] = external
