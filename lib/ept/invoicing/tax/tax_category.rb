@@ -19,8 +19,8 @@ module Ept
         # valid_until: The moment in which the rate expires (not the last day on which it is valid!)
         # valid_until may be NULL (which means 'valid until further notice'), column type datetime
         def acts_as_tax_category(options={})
-          include Ept::Invoicing::Tax::TaxCategoryMethods
-          extend Ept::Invoicing::Tax::TaxCategoryClassMethods
+          include ::Ept::Invoicing::Tax::TaxCategoryMethods
+          extend ::Ept::Invoicing::Tax::TaxCategoryClassMethods
           @tax_category_replaced_by = options[:replaced_by] || 'replaced_by_id'
           @tax_category_valid_from  = options[:valid_from ] || 'valid_from'
           @tax_category_valid_until = options[:valid_until] || 'valid_until'
