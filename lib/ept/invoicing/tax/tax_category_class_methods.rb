@@ -23,6 +23,10 @@ module Ept
           can_be_selected(not_before, not_after).select{|rate| rate.send(@tax_category_is_default)}.first
         end
         
+        # Returns the default rate which is in effect at the given date/time.
+        def default_rate_at_date(reference_date)
+          default_rate(reference_date, reference_date + 1.second)
+        end          
       end
     end
   end
