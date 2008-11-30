@@ -33,7 +33,7 @@ module Ept
           named_scope :valid_during_period, lambda{|not_before, not_after| {
             :conditions => [
               # Not yet expired at beginning of date range
-              "(#{table_name}.#{@tax_category_valid_until} IS NULL OR #{table_name}.#{@tax_category_valid_until} >= ?) AND " +
+              "(#{table_name}.#{@tax_category_valid_until} IS NULL OR #{table_name}.#{@tax_category_valid_until} > ?) AND " +
               
               # Comes into effect before end of date range
               "#{table_name}.#{@tax_category_valid_from} < ?",
