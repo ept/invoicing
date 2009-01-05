@@ -30,7 +30,7 @@ module Invoicing
           else
             value = value.to_f
             taxed = tax_logic.display_price_to_user({:model_object => self, :method => method_name, :value => value}, *args)
-            ::Ept::Invoicing::Utils.round_to_currency_precision(taxed)
+            ::Invoicing::Utils.round_to_currency_precision(taxed)
           end
         end
       end
@@ -70,11 +70,11 @@ module Invoicing
             send(method_name + "=", nil)
           else
             # FIXME check if value has a valid floating-point number format
-            value = ::Ept::Invoicing::Utils.round_to_currency_precision(value.to_f)
+            value = ::Invoicing::Utils.round_to_currency_precision(value.to_f)
             internal = tax_logic.input_price_from_user({:model_object => self, :method => method_name, :value => value})
-            internal = ::Ept::Invoicing::Utils.round_to_currency_precision(internal)
+            internal = ::Invoicing::Utils.round_to_currency_precision(internal)
             external = tax_logic.display_price_to_user({:model_object => self, :method => method_name, :value => internal})
-            external = ::Ept::Invoicing::Utils.round_to_currency_precision(external)
+            external = ::Invoicing::Utils.round_to_currency_precision(external)
             
             if external != value
               @taxed_attr_error[method_name] = (external > value) ? :high : :low
