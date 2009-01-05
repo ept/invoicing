@@ -1,8 +1,3 @@
-#--
-# Copyright (c) 2009 Martin Kleppmann
-# All rights reserved.  See LICENSE and/or COPYING for details
-#++
-
 module Invoicing
   module Version
     MAJOR   = 0
