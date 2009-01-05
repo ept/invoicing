@@ -55,3 +55,6 @@ module Invoicing
 
 end
 require 'invoicing/version'
+
+ActiveRecord::Base.send(:extend, Invoicing::ActiveRecordMethods)
+ActiveRecord::Base.send(:extend, Invoicing::Tax::TaxCategory)
