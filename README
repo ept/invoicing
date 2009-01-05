@@ -1,21 +1,31 @@
-== invoicing
+== Ruby invoicing framework
 
-* Homepage
-* rubyforge project
-* email
+* Homepage: http://invoicing.rubyforge.org/
 
 == DESCRIPTION
 
+The Ruby invoicing framework provides tools, helpers and a structure for
+applications (particularly web apps) which need to generate invoices for
+customers. It builds on ActiveRecord and is particularly suited for Rails
+applications, but could be used with other frameworks too.
+
 == FEATURES
+
+* Dealing with tax rates changing over time
+* Calculating commissions (e.g. in a reseller setting)
 
 == SYNOPSIS
 
 == CREDITS
 
+The Ruby invoicing framework originated as part of the website Bid for Wine
+(http://www.bidforwine.co.uk), developed by Patrick Dietrich, Conrad Irwin
+and Michael Arnold for Ept Computing Ltd. It was extracted from the Bid for
+Wine codebase and substantially extended by Martin Kleppmann.
+
 == LICENSE
 
-Copyright (c)  Martin Kleppmann
+Copyright (c) 2009 Martin Kleppmann, Ept Computing Limited.
 
-All rights reserved.
-
+This gem is made publicly available under the terms of the MIT license.
 See LICENSE and/or COPYING for details.

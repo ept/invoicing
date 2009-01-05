@@ -1,4 +1,8 @@
 = Changelog
 == Version 0.0.1
 
+* Extracting some of the invoice handling code from the
+  Bid for Wine application (http://www.bidforwine.co.uk).
+  The code of Bid for Wine is owned by Ept Computing Limited, and
+  the portions used in this gem are released under the MIT license.
 * Initial public release
