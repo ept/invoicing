@@ -1,2 +1,5 @@
 doc
 pkg
+.loadpath
+.project
+.settings
