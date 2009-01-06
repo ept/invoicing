@@ -152,6 +152,119 @@ module Invoicing
   # give it whatever extra metadata you want, and make references to it from any other model object.
   module TimeDependent
 
+    def self.included(base)
+      base.send :extend, ClassMethods
+      #base.alias_method_chain :find, :aggressive_caching
+    end
+
+    
+    module ClassMethods
+      # Get all those rates which may apply within a particular date/time range
+      # (e.g. between now and one month from now).
+      # If rates are changing during this time interval, and one rate is replacing
+      # another, then only the earliest element of each replacement chain is returned
+      # (because we can convert from an earlier rate to a later one, but not necessarily
+      # in reverse).
+      def can_be_selected(not_before, not_after)
+        valid_rates = valid_during_period(not_before, not_after).with_predecessors
+        ids = valid_rates.map{|rate| rate.id}
+        valid_rates.select{|rate| rate.predecessors.empty? || (ids & rate.predecessors).empty?}
+      end
+      
+      # Returns the default rate from within the set of rates returned by 'can_be_selected',
+      # or nil if none is found.
+      def default_rate(not_before, not_after)
+        can_be_selected(not_before, not_after).select{|rate| rate.send(:is_default)}.first
+      end
+      
+      # Returns the default rate which is in effect at the given date/time.
+      def default_rate_at_date(reference_date)
+        default_rate(reference_date, reference_date + 1.second)
+      end          
+    end # module ClassMethods
+    
+    
+    def find_with_aggressive_caching(*args)
+      puts "find_with_aggressive_caching"
+      find_without_aggressive_caching(*args)
+#      expects_array = ids.first.kind_of?(Array)
+#      return ids.first if expects_array && ids.first.empty?
+#
+#      ids = ids.flatten.compact.uniq
+#
+#      case ids.size
+#        when 0
+#          raise RecordNotFound, "Couldn't find #{name} without an ID"
+#        when 1
+#          result = find_one(ids.first, options)
+#          expects_array ? [ result ] : result
+#        else
+#          find_some(ids, options)
+#      end
+    end
+
+
+    # Roughly the same as the 'replaces' relation except that:
+    # - this function returns an array of IDs, while 'replaces' returns an array of objects
+    # - this function can return without performing an SQL query if the query was performed
+    #   using the 'with_predecessors' scope.
+    def predecessors
+      if respond_to? :predecessor_ids
+        # Called with 'with_predecessors' scope :-)
+        predecessor_ids.nil? ? [] : predecessor_ids.split(',').map{|id| id.to_i}
+      else
+        # Not called with scope -- need to make a query :-(
+        replaces.map{|rate| rate.id}
+      end
+    end
+    
+    # If this rate is still valid at the given date/time, this method just returns self.
+    # If this rate is no longer valid at the given date/time, the rate object which has been
+    # marked as this rate's replacement for the given point in time is returned.
+    # If this rate has expired and there is no valid replacement, nil is returned.
+    def rate_at_date date
+      if valid_until.nil? || (valid_until > date)
+        self
+      elsif replaced_by.nil?
+        nil
+      else
+        replaced_by.rate_at_date date
+      end
+    end
+  
+    # Returns self, or if this rate has expired, the replacement which is valid at this moment.
+    # If there is no valid replacement, nil is returned.
+    def rate_today
+      rate_at_date Time.now
+    end
+    
+    # Examines the replacement chain from this rate object into the future. If the rate
+    # stays the same throughout the duration starting at from_date and ending at to_date,
+    # an empty array is returned; otherwise an array of Time objects is returned, each
+    # Time object indicating the date and time at which a rate change will occur.
+    def changes_during_period(from_time, to_time)
+      changes = []
+      rate_object = self
+      while !rate_object.nil? && !rate_object.valid_until.nil? && (rate_object.valid_until <= to_time)
+        changes << rate_object.valid_until if rate_object.valid_until > from_time
+        rate_object = rate_object.replaced_by
+      end
+      changes
+    end
+    
+  end # module TimeDependent
+  
+  class TimeDependentClassInfo
+    def initialize(model_class, options={})
+      @model_class = model_class
+      @methods = {}
+      [:id, :valid_from, :valid_until, :replaced_by_id, :value, :is_default].each do |name|
+        @methods[name] = (options[name] || name).to_s
+      end
+    end
+  end
+
+  module TimeDependentActMethods
     # Identifies the current model object as a +TimeDependent+ object, and creates all the
     # necessary methods.
     #
@@ -184,21 +297,20 @@ module Invoicing
       return if @time_dependent_class_info
       @time_dependent_class_info = ::Invoicing::TimeDependentClassInfo.new(self, options)
       
-      include ::Invoicing::TimeDependentMethods
-      extend ::Invoicing::TimeDependentClassMethods
+      include ::Invoicing::TimeDependent
       
       belongs_to :replaced_by, :class_name => class_name
-      has_many :replaces, :class_name => class_name, :foreign_key => @tax_category_replaced_by
+      has_many :replaces, :class_name => class_name, :foreign_key => 'replaced_by_id'
       
       # Get all those rates which may apply within a particular date range
       # (e.g. between now and one month from now).
       named_scope :valid_during_period, lambda{|not_before, not_after| {
         :conditions => [
           # Not yet expired at beginning of date range
-          "(#{table_name}.#{@tax_category_valid_until} IS NULL OR #{table_name}.#{@tax_category_valid_until} > ?) AND " +
+          "(#{table_name}.valid_until IS NULL OR #{table_name}.valid_until > ?) AND " +
           
           # Comes into effect before end of date range
-          "#{table_name}.#{@tax_category_valid_from} < ?",
+          "#{table_name}.valid_from < ?",
           
           not_before, not_after
         ]
@@ -212,19 +324,13 @@ module Invoicing
       # This named scope may only work in MySQL.
       named_scope :with_predecessors, {
         :select => "#{table_name}.*, GROUP_CONCAT(predecessors.id SEPARATOR ',') AS predecessor_ids",
-        :joins => "LEFT JOIN #{table_name} predecessors ON predecessors.#{@tax_category_replaced_by} = #{table_name}.id",
+        :joins => "LEFT JOIN #{table_name} predecessors ON predecessors.replaced_by_id = #{table_name}.id",
         :group => "#{table_name}.id"
       }  
+    end # acts_as_time_dependent
+    
+    def acts_as_tax_category(options={})
+      acts_as_time_dependent(options)
     end
-  end
-  
-  class TimeDependentClassInfo
-    def initialize(model_class, options={})
-      @model_class = model_class
-      @methods = {}
-      [:id, :valid_from, :valid_until, :replaced_by_id, :value, :is_default].each do |name|
-        @methods[name] = (options[name] || name).to_s
-      end
-    end
-  end
+  end # module TimeDependentActMethods
 end
