@@ -190,7 +190,6 @@ module Invoicing
         include ::Invoicing::TimeDependent
         @time_dependent_class_info = ::Invoicing::TimeDependentClassInfo.new(self, options)
         
-        
         belongs_to :replaced_by, :class_name => class_name
         has_many :replaces, :class_name => class_name, :foreign_key => 'replaced_by_id'
         
@@ -227,35 +226,71 @@ module Invoicing
     end # module ActMethods
 
     
-    def self.included(base)
+    def self.included(base) #:nodoc:
       base.send :extend, ClassMethods
     end
 
     
     module ClassMethods
       
-      # Get all those rates which may apply within a particular date/time range
-      # (e.g. between now and one month from now).
-      # If rates are changing during this time interval, and one rate is replacing
+      # Returns a list of records which are valid at some point during a particular date/time
+      # range. If there is a change of rate during this time interval, and one rate replaces
       # another, then only the earliest element of each replacement chain is returned
-      # (because we can convert from an earlier rate to a later one, but not necessarily
-      # in reverse).
-      def can_be_selected(not_before, not_after)
-        valid_rates = valid_during_period(not_before, not_after).with_predecessors
-        ids = valid_rates.map{|rate| rate.id}
-        valid_rates.select{|rate| rate.predecessors.empty? || (ids & rate.predecessors).empty?}
+      # (because we can unambiguously convert from an earlier rate to a later one, but
+      # not necessarily in reverse).
+      #
+      # The date range must not be empty (i.e. +not_after+ must be later than +not_before+,
+      # not the same time or earlier). If you need the records which are valid at one
+      # particular point in time, use +valid_records_at+.
+      #
+      # A typical application for this method would be where you want to offer users the
+      # ability to choose from a selection of rates, including ones which are not yet
+      # valid but will become valid within the next month, for example.
+      def valid_records_during(not_before, not_after)
+        info = @time_dependent_class_info
+        
+        # List of all records whose validity period intersects the selected period
+        valid_records = cached_record_list.select do |record|
+          valid_from  = info.get(record, :valid_from)
+          valid_until = info.get(record, :valid_until)
+          has_taken_effect = (valid_from < not_after) # N.B. less than
+          not_yet_expired  = (valid_until == nil) || (valid_until > not_before)
+          has_taken_effect && not_yet_expired
+        end
+        
+        # Select only those which do not have a predecessor which is also valid
+        valid_records.select do |record|
+          record.predecessors.empty? || (valid_records & record.predecessors).empty?
+        end
       end
       
-      # Returns the default rate from within the set of rates returned by 'can_be_selected',
-      # or nil if none is found.
-      def default_rate(not_before, not_after)
-        can_be_selected(not_before, not_after).select{|rate| rate.send(:is_default)}.first
+      # Returns the list of all records which are valid at one particular point in time.
+      # If you need to consider a period of time rather than a point in time, use
+      # +valid_records_during+.
+      def valid_records_at(reference)
+        info = @time_dependent_class_info
+        cached_record_list.select do |record|
+          valid_from  = info.get(record, :valid_from)
+          valid_until = info.get(record, :valid_until)
+          has_taken_effect = (valid_from <= reference) # N.B. less than or equals
+          not_yet_expired  = (valid_until == nil) || (valid_until > reference)
+          has_taken_effect && not_yet_expired
+        end
       end
       
-      # Returns the default rate which is in effect at the given date/time.
-      def default_rate_at_date(reference_date)
-        default_rate(reference_date, reference_date + 1.second)
-      end          
+      # Returns the default record which is valid at a particular point in time.
+      # If there is no record marked as default, nil is returned; if there are
+      # multiple records marked as default, results are undefined.
+      # This method only works if the model objects have an +is_default+ column.
+      def default_record_at(reference)
+        info = @time_dependent_class_info
+        valid_records_at(reference).select{|record| info.get(record, :is_default)}.first
+      end
+      
+      # Returns the default record which is valid at the current moment.
+      def default_record_now
+        default_record_at(Time.now)
+      end
     
     end # module ClassMethods
 
@@ -310,13 +345,19 @@ module Invoicing
   end # module TimeDependent
   
   class TimeDependentClassInfo #:nodoc:
+    
     def initialize(model_class, options={})
       @model_class = model_class
+      
       # @methods maps default model object column method names to the names actually used
       @methods = {}
       [:id, :valid_from, :valid_until, :replaced_by_id, :value, :is_default].each do |name|
         @methods[name] = (options[name] || name).to_s
       end
+    end
+    
+    def get(object, method)
+      object.send(@methods[method.to_sym])
     end
   end
 
