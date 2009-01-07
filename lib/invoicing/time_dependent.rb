@@ -34,7 +34,7 @@ module Invoicing
   #
   # == Data Structure
   #
-  # +TimeDependent+ objects are special +ActiveRecord::Base+ objects. One database table is used,
+  # +TimeDependent+ objects are special ActiveRecord::Base objects. One database table is used,
   # and each row in that table represents the value (e.g. the tax rate or the price) during
   # a particular period of time. If there are multiple different values at the same time (e.g.
   # a reduced tax rate and a higher rate), each of these is also represented as a separate
@@ -119,11 +119,12 @@ module Invoicing
   # dozen) and very infrequent changes. To reduce database load, it caches model objects very
   # aggressively; <b>you will need to restart your Ruby interpreter after making a change to
   # the data</b> as the cache is not cleared between requests. This is ok because you shouldn't
-  # be lightheartedly modifying +TimeDependent+ data anyway; a database migration is probably
-  # the best way of introducing a rate change (that way you can also check it all looks correct
-  # on your staging server before making the rate change public).
+  # be lightheartedly modifying +TimeDependent+ data anyway; a database migration as part of an
+  # explicitly deployed release is probably the best way of introducing a rate change
+  # (that way you can also check it all looks correct on your staging server before making the
+  # rate change public).
   #
-  # A model object using +TimeDependent+ must inherit from +ActiveRecord::Base+ and must have
+  # A model object using +TimeDependent+ must inherit from ActiveRecord::Base and must have
   # at least the following columns (although columns may have different names, if declared to
   # +acts_as_time_dependent+):
   # * <tt>id</tt> -- An integer primary key
@@ -152,13 +153,87 @@ module Invoicing
   # give it whatever extra metadata you want, and make references to it from any other model object.
   module TimeDependent
 
+    module ActMethods
+      # Identifies the current model object as a +TimeDependent+ object, and creates all the
+      # necessary methods.
+      #
+      # Accepts options in a hash, all of which are optional:
+      # * <tt>id</tt> -- Alternative name for the <tt>id</tt> column
+      # * <tt>valid_from</tt> -- Alternative name for the <tt>valid_from</tt> column
+      # * <tt>valid_until</tt> -- Alternative name for the <tt>valid_until</tt> column
+      # * <tt>replaced_by_id</tt> -- Alternative name for the <tt>replaced_by_id</tt> column
+      # * <tt>value</tt> -- Alternative name for the <tt>value</tt> column
+      # * <tt>is_default</tt> -- Alternative name for the <tt>is_default</tt> column
+      #
+      # Example:
+      #
+      #   class CommissionRate < ActiveRecord::Base
+      #     acts_as_time_dependent :value => :rate
+      #     belongs_to :referral_program
+      #     named_scope :for_referral_program, lambda { |p| { :conditions => { :referral_program_id => p.id } } }
+      #   end
+      #   
+      #   reseller_program = ReferralProgram.find(1)
+      #   commission = CommissionRate.for_referral_program(reseller_program).current_default_object
+      #   puts "Earn #{commission.rate} per cent commission as a reseller..."
+      #   
+      #   for change_date in commission.changes_during_period(Time.now, 1.year.from_now)
+      #     new_rate = commission.rate_at_date(change_date)
+      #     puts "Changing to #{new_rate} per cent on #{change_date.strftime('%d %b %Y')}!"
+      #   end
+      #
+      def acts_as_time_dependent(options={})
+        return if @time_dependent_class_info
+        
+        acts_as_cached_record :id => (options[:id] || 'id')
+        
+        include ::Invoicing::TimeDependent
+        @time_dependent_class_info = ::Invoicing::TimeDependentClassInfo.new(self, options)
+        
+        
+        belongs_to :replaced_by, :class_name => class_name
+        has_many :replaces, :class_name => class_name, :foreign_key => 'replaced_by_id'
+        
+        # Get all those rates which may apply within a particular date range
+        # (e.g. between now and one month from now).
+        named_scope :valid_during_period, lambda{|not_before, not_after| {
+          :conditions => [
+            # Not yet expired at beginning of date range
+            "(#{table_name}.valid_until IS NULL OR #{table_name}.valid_until > ?) AND " +
+            
+            # Comes into effect before end of date range
+            "#{table_name}.valid_from < ?",
+            
+            not_before, not_after
+          ]
+        }}
+        
+        # Adds an aggregated column 'predecessor_ids' to a query: for each rate object, this column
+        # contains a comma-separated list of rate object IDs which refer to this object through the
+        # replaced_by relation (i.e. the rate's predecessors). This is equivalent to invoking
+        # rate.replaces.join(',') for each object, but results in only one SQL query rather than
+        # many. For objects with no predecessors, the additional column is nil.
+        # This named scope may only work in MySQL.
+        named_scope :with_predecessors, {
+          :select => "#{table_name}.*, GROUP_CONCAT(predecessors.id SEPARATOR ',') AS predecessor_ids",
+          :joins => "LEFT JOIN #{table_name} predecessors ON predecessors.replaced_by_id = #{table_name}.id",
+          :group => "#{table_name}.id"
+        }  
+      end # acts_as_time_dependent
+      
+      def acts_as_tax_category(options={})
+        acts_as_time_dependent(options)
+      end
+    end # module ActMethods
+
+    
     def self.included(base)
       base.send :extend, ClassMethods
-      #base.alias_method_chain :find, :aggressive_caching
     end
 
     
     module ClassMethods
+      
       # Get all those rates which may apply within a particular date/time range
       # (e.g. between now and one month from now).
       # If rates are changing during this time interval, and one rate is replacing
@@ -181,28 +256,8 @@ module Invoicing
       def default_rate_at_date(reference_date)
         default_rate(reference_date, reference_date + 1.second)
       end          
+    
     end # module ClassMethods
-    
-    
-    def find_with_aggressive_caching(*args)
-      puts "find_with_aggressive_caching"
-      find_without_aggressive_caching(*args)
-#      expects_array = ids.first.kind_of?(Array)
-#      return ids.first if expects_array && ids.first.empty?
-#
-#      ids = ids.flatten.compact.uniq
-#
-#      case ids.size
-#        when 0
-#          raise RecordNotFound, "Couldn't find #{name} without an ID"
-#        when 1
-#          result = find_one(ids.first, options)
-#          expects_array ? [ result ] : result
-#        else
-#          find_some(ids, options)
-#      end
-    end
-
 
     # Roughly the same as the 'replaces' relation except that:
     # - this function returns an array of IDs, while 'replaces' returns an array of objects
@@ -254,9 +309,10 @@ module Invoicing
     
   end # module TimeDependent
   
-  class TimeDependentClassInfo
+  class TimeDependentClassInfo #:nodoc:
     def initialize(model_class, options={})
       @model_class = model_class
+      # @methods maps default model object column method names to the names actually used
       @methods = {}
       [:id, :valid_from, :valid_until, :replaced_by_id, :value, :is_default].each do |name|
         @methods[name] = (options[name] || name).to_s
@@ -264,73 +320,4 @@ module Invoicing
     end
   end
 
-  module TimeDependentActMethods
-    # Identifies the current model object as a +TimeDependent+ object, and creates all the
-    # necessary methods.
-    #
-    # Accepts options in a hash, all of which are optional:
-    # * <tt>id</tt> -- Alternative name for the <tt>id</tt> column
-    # * <tt>valid_from</tt> -- Alternative name for the <tt>valid_from</tt> column
-    # * <tt>valid_until</tt> -- Alternative name for the <tt>valid_until</tt> column
-    # * <tt>replaced_by_id</tt> -- Alternative name for the <tt>replaced_by_id</tt> column
-    # * <tt>value</tt> -- Alternative name for the <tt>value</tt> column
-    # * <tt>is_default</tt> -- Alternative name for the <tt>is_default</tt> column
-    #
-    # Example:
-    #
-    #   class CommissionRate < ActiveRecord::Base
-    #     acts_as_time_dependent :value => :rate
-    #     belongs_to :referral_program
-    #     named_scope :for_referral_program, lambda { |p| { :conditions => { :referral_program_id => p.id } } }
-    #   end
-    #   
-    #   reseller_program = ReferralProgram.find(1)
-    #   commission = CommissionRate.for_referral_program(reseller_program).current_default_object
-    #   puts "Earn #{commission.rate} per cent commission as a reseller..."
-    #   
-    #   for change_date in commission.changes_during_period(Time.now, 1.year.from_now)
-    #     new_rate = commission.rate_at_date(change_date)
-    #     puts "Changing to #{new_rate} per cent on #{change_date.strftime('%d %b %Y')}!"
-    #   end
-    #
-    def acts_as_time_dependent(options={})
-      return if @time_dependent_class_info
-      @time_dependent_class_info = ::Invoicing::TimeDependentClassInfo.new(self, options)
-      
-      include ::Invoicing::TimeDependent
-      
-      belongs_to :replaced_by, :class_name => class_name
-      has_many :replaces, :class_name => class_name, :foreign_key => 'replaced_by_id'
-      
-      # Get all those rates which may apply within a particular date range
-      # (e.g. between now and one month from now).
-      named_scope :valid_during_period, lambda{|not_before, not_after| {
-        :conditions => [
-          # Not yet expired at beginning of date range
-          "(#{table_name}.valid_until IS NULL OR #{table_name}.valid_until > ?) AND " +
-          
-          # Comes into effect before end of date range
-          "#{table_name}.valid_from < ?",
-          
-          not_before, not_after
-        ]
-      }}
-      
-      # Adds an aggregated column 'predecessor_ids' to a query: for each rate object, this column
-      # contains a comma-separated list of rate object IDs which refer to this object through the
-      # replaced_by relation (i.e. the rate's predecessors). This is equivalent to invoking
-      # rate.replaces.join(',') for each object, but results in only one SQL query rather than
-      # many. For objects with no predecessors, the additional column is nil.
-      # This named scope may only work in MySQL.
-      named_scope :with_predecessors, {
-        :select => "#{table_name}.*, GROUP_CONCAT(predecessors.id SEPARATOR ',') AS predecessor_ids",
-        :joins => "LEFT JOIN #{table_name} predecessors ON predecessors.replaced_by_id = #{table_name}.id",
-        :group => "#{table_name}.id"
-      }  
-    end # acts_as_time_dependent
-    
-    def acts_as_tax_category(options={})
-      acts_as_time_dependent(options)
-    end
-  end # module TimeDependentActMethods
 end
