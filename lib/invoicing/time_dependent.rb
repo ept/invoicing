@@ -17,7 +17,7 @@ module Invoicing
   #
   # This naive implementation has a number of problems, which are addressed by this module:
   # * With a constant, you have no way of informing users what a price will be after an
-  #   upcoming tax change. Using +TimeDependent+ allows you to query the value at any date
+  #   upcoming tax change. Using +TimeDependent+ allows you to query the value on any date
   #   in the past or future, and show it to users as appropriate. You also gain the ability
   #   to process back-dated or future-dated transactions if this should be necessary.
   # * With a constant, you have no explicit information in your database informing you which
@@ -44,7 +44,7 @@ module Invoicing
   #
   # If a rate change is announced, it <b>important that the actual values in the table
   # are not changed</b> in order to preserve historical information. Instead, add another
-  # row (or several rows), taking effect at the appropriate date. However, it is usually
+  # row (or several rows), taking effect on the appropriate date. However, it is usually
   # not necessary to update your other model objects to refer to these new rows; instead,
   # each +TimeDependent+ object which expires has a reference to the new +TimeDependent+
   # objects which replaces it. +TimeDependent+ provides methods for finding the current (or
