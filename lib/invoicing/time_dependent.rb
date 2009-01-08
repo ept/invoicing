@@ -178,7 +178,7 @@ module Invoicing
       #   puts "Earn #{commission.rate} per cent commission as a reseller..."
       #   
       #   for change_date in commission.changes_during_period(Time.now, 1.year.from_now)
-      #     new_rate = commission.rate_at_date(change_date)
+      #     new_rate = commission.record_at(change_date)
       #     puts "Changing to #{new_rate} per cent on #{change_date.strftime('%d %b %Y')}!"
       #   end
       #
@@ -190,34 +190,22 @@ module Invoicing
         include ::Invoicing::TimeDependent
         @time_dependent_class_info = ::Invoicing::TimeDependentClassInfo.new(self, options)
         
-        belongs_to :replaced_by, :class_name => class_name
-        has_many :replaces, :class_name => class_name, :foreign_key => 'replaced_by_id'
+        # Create replaced_by association if it doesn't exist yet
+        replaced_by_id = @time_dependent_class_info.method(:replaced_by_id)
+        unless respond_to? :replaced_by
+          belongs_to :replaced_by, :class_name => class_name, :foreign_key => replaced_by_id
+        end
         
-        # Get all those rates which may apply within a particular date range
-        # (e.g. between now and one month from now).
-        named_scope :valid_during_period, lambda{|not_before, not_after| {
-          :conditions => [
-            # Not yet expired at beginning of date range
-            "(#{table_name}.valid_until IS NULL OR #{table_name}.valid_until > ?) AND " +
-            
-            # Comes into effect before end of date range
-            "#{table_name}.valid_from < ?",
-            
-            not_before, not_after
-          ]
-        }}
-        
-        # Adds an aggregated column 'predecessor_ids' to a query: for each rate object, this column
-        # contains a comma-separated list of rate object IDs which refer to this object through the
-        # replaced_by relation (i.e. the rate's predecessors). This is equivalent to invoking
-        # rate.replaces.join(',') for each object, but results in only one SQL query rather than
-        # many. For objects with no predecessors, the additional column is nil.
-        # This named scope may only work in MySQL.
-        named_scope :with_predecessors, {
-          :select => "#{table_name}.*, GROUP_CONCAT(predecessors.id SEPARATOR ',') AS predecessor_ids",
-          :joins => "LEFT JOIN #{table_name} predecessors ON predecessors.replaced_by_id = #{table_name}.id",
-          :group => "#{table_name}.id"
-        }  
+        # Create value_at and value_now method aliases
+        value_method = @time_dependent_class_info.method(:value)
+        if value_method != 'value'
+          alias_method(value_method + '_at',  :value_at)
+          alias_method(value_method + '_now', :value_now)
+          class_eval "class << self
+            alias_method('default_#{value_method}_at',  :default_value_at)
+            alias_method('default_#{value_method}_now', :default_value_now)
+          end"
+        end
       end # acts_as_time_dependent
       
       def acts_as_tax_category(options={})
@@ -232,6 +220,7 @@ module Invoicing
 
     
     module ClassMethods
+      attr_reader :time_dependent_class_info #:nodoc:
       
       # Returns a list of records which are valid at some point during a particular date/time
       # range. If there is a change of rate during this time interval, and one rate replaces
@@ -267,13 +256,13 @@ module Invoicing
       # Returns the list of all records which are valid at one particular point in time.
       # If you need to consider a period of time rather than a point in time, use
       # +valid_records_during+.
-      def valid_records_at(reference)
+      def valid_records_at(point_in_time)
         info = @time_dependent_class_info
         cached_record_list.select do |record|
           valid_from  = info.get(record, :valid_from)
           valid_until = info.get(record, :valid_until)
-          has_taken_effect = (valid_from <= reference) # N.B. less than or equals
-          not_yet_expired  = (valid_until == nil) || (valid_until > reference)
+          has_taken_effect = (valid_from <= point_in_time) # N.B. less than or equals
+          not_yet_expired  = (valid_until == nil) || (valid_until > point_in_time)
           has_taken_effect && not_yet_expired
         end
       end
@@ -282,68 +271,105 @@ module Invoicing
       # If there is no record marked as default, nil is returned; if there are
       # multiple records marked as default, results are undefined.
       # This method only works if the model objects have an +is_default+ column.
-      def default_record_at(reference)
+      def default_record_at(point_in_time)
         info = @time_dependent_class_info
-        valid_records_at(reference).select{|record| info.get(record, :is_default)}.first
+        valid_records_at(point_in_time).select{|record| info.get(record, :is_default)}.first
       end
       
       # Returns the default record which is valid at the current moment.
       def default_record_now
         default_record_at(Time.now)
       end
+      
+      # Finds the default record for a particular +point_in_time+ (using +default_record_at+),
+      # then returns the value of that record's +value+ column. If +value+ was renamed to
+      # +another_method_name+ (option to +acts_as_time_dependent+), then
+      # +default_another_method_name_at+ is defined as an alias for +default_value_at+.
+      def default_value_at(point_in_time)
+        @time_dependent_class_info.get(default_record_at(point_in_time), :value)
+      end
+    
+      # Finds the current default record (like +default_record_now+),
+      # then returns the value of that record's +value+ column. If +value+ was renamed to
+      # +another_method_name+ (option to +acts_as_time_dependent+), then
+      # +default_another_method_name_now+ is defined as an alias for +default_value_now+.
+      def default_value_now
+        default_value_at(Time.now)
+      end
     
     end # module ClassMethods
 
-    # Roughly the same as the 'replaces' relation except that:
-    # - this function returns an array of IDs, while 'replaces' returns an array of objects
-    # - this function can return without performing an SQL query if the query was performed
-    #   using the 'with_predecessors' scope.
+    # Returns a list of objects of the same type as this object, which refer to this object
+    # through their +replaced_by_id+ values. In other words, this method returns all records
+    # which are direct predecessors of the current record in the replacement chain.
     def predecessors
-      if respond_to? :predecessor_ids
-        # Called with 'with_predecessors' scope :-)
-        predecessor_ids.nil? ? [] : predecessor_ids.split(',').map{|id| id.to_i}
-      else
-        # Not called with scope -- need to make a query :-(
-        replaces.map{|rate| rate.id}
-      end
+      self.class.time_dependent_class_info.predecessors(self)
     end
     
-    # If this rate is still valid at the given date/time, this method just returns self.
-    # If this rate is no longer valid at the given date/time, the rate object which has been
-    # marked as this rate's replacement for the given point in time is returned.
-    # If this rate has expired and there is no valid replacement, nil is returned.
-    def rate_at_date date
-      if valid_until.nil? || (valid_until > date)
+    # Translates this record into its replacement for a given point in time, if necessary/possible.
+    #
+    # * If this record is still valid at the given date/time, this method just returns self.
+    # * If this record is no longer valid at the given date/time, the record which has been
+    #   marked as this rate's replacement for the given point in time is returned.
+    # * If this record has expired and there is no valid replacement, nil is returned.
+    # * On the other hand, if the given date is at a time before this record becomes valid,
+    #   we try to follow the chain of +predecessors+ records. If there is an unambiguous predecessor
+    #   record which is valid at the given point in time, it is returned; otherwise nil is returned.
+    def record_at(point_in_time)
+      if valid_from > point_in_time
+        (predecessors.size == 1) ? predecessors[0].record_at(point_in_time) : nil
+      elsif valid_until.nil? || (valid_until > point_in_time)
         self
       elsif replaced_by.nil?
         nil
       else
-        replaced_by.rate_at_date date
+        replaced_by.record_at(point_in_time)
       end
     end
   
-    # Returns self, or if this rate has expired, the replacement which is valid at this moment.
-    # If there is no valid replacement, nil is returned.
-    def rate_today
-      rate_at_date Time.now
+    # Returns self if this record is currently valid, otherwise its past or future replacement
+    # (see +record_at+). If there is no valid replacement, nil is returned.
+    def record_now
+      record_at Time.now
     end
     
-    # Examines the replacement chain from this rate object into the future. If the rate
-    # stays the same throughout the duration starting at from_date and ending at to_date,
-    # an empty array is returned; otherwise an array of Time objects is returned, each
-    # Time object indicating the date and time at which a rate change will occur.
-    def changes_during_period(from_time, to_time)
+    # Finds this record's replacement for a given point in time (see +record_at+), then returns
+    # the value in its +value+ column. If +value+ was renamed to +another_method_name+ (option to
+    # +acts_as_time_dependent+), then +another_method_name_at+ is defined as an alias for +value_at+.
+    def value_at(point_in_time)
+      self.class.time_dependent_class_info.get(record_at(point_in_time), :value)
+    end
+
+    # Returns +value_at+ for the current date/time. If +value+ was renamed to +another_method_name+
+    # (option to +acts_as_time_dependent+), then +another_method_name_now+ is defined as an alias for
+    # +value_now+.
+    def value_now
+      value_at Time.now
+    end
+    
+    # Examines the replacement chain from this record into the future, during the period
+    # starting with this record's +valid_from+ and ending at +point_in_time+.
+    # If this record stays valid until after +point_in_time+, an empty list is returned.
+    # Otherwise the sequence of replacement records is returned in the list. If a record
+    # expires before +point_in_time+ and without replacement, a +nil+ element is inserted
+    # as the last element of the list.
+    def changes_until(point_in_time)
+      info = self.class.time_dependent_class_info
       changes = []
-      rate_object = self
-      while !rate_object.nil? && !rate_object.valid_until.nil? && (rate_object.valid_until <= to_time)
-        changes << rate_object.valid_until if rate_object.valid_until > from_time
-        rate_object = rate_object.replaced_by
+      record = self
+      while !record.nil?
+        valid_until = info.get(record, :valid_until)
+        break if valid_until.nil? || (valid_until > point_in_time)
+        record = record.replaced_by
+        changes << record
       end
       changes
     end
     
   end # module TimeDependent
   
+  
+  # Stores state in the ActiveRecord class object
   class TimeDependentClassInfo #:nodoc:
     
     def initialize(model_class, options={})
@@ -354,10 +380,29 @@ module Invoicing
       [:id, :valid_from, :valid_until, :replaced_by_id, :value, :is_default].each do |name|
         @methods[name] = (options[name] || name).to_s
       end
+      
+      # @predecessors is a hash of an ID pointing to the list of all objects which have that ID
+      # as replaced_by_id value
+      @predecessors = {}
+      for record in @model_class.cached_record_list
+        id = get(record, :replaced_by_id)
+        unless id.nil?
+          @predecessors[id] ||= []
+          @predecessors[id] << record
+        end
+      end
     end
     
-    def get(object, method)
-      object.send(@methods[method.to_sym])
+    def method(name)
+      @methods[name.to_sym]
+    end
+    
+    def get(object, method_name)
+      object.nil? ? nil : object.send(method(method_name))
+    end
+    
+    def predecessors(record)
+      @predecessors[get(record, :id)] || []
     end
   end
 

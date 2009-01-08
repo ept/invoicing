@@ -4,10 +4,10 @@ module Invoicing
   # This module implements a cache of +ActiveRecord+ objects. It is suitable for database
   # tables with a small number of rows (no more than a few dozen is recommended) which
   # change very infrequently. The contents of the table is loaded into memory when the
-  # class is first created; <b>to clear the cache you must restart the Ruby interpreter</b>.
-  # For this reason, using +CachedRecord+ also makes the model objects read-only. It is
-  # recommended that if you need to change the data in this table, you do so in a database
-  # migration, and apply that migration as part of a release deployment.
+  # class is first created; <b>to clear the cache you must call +clear_cache+ or
+  # restart the Ruby interpreter</b>. It is recommended that if you need to change the
+  # data in this table, you do so in a database migration, and apply that migration as
+  # part of a release deployment.
   #
   # The cache works as a simple identity map: it has a hash where the key is the primary
   # key of each model object and the value is the model object itself. +ActiveRecord+
@@ -72,12 +72,12 @@ module Invoicing
       def cached_record_list
         @cached_record_class_info.list
       end
+      
+      # Reloads the cached objects from the database.
+      def reload_cache
+        @cached_record_class_info.reload_cache
+      end
     end # module ClassMethods
-    
-    # Returns true, so that cached model objects cannot be modified or updated.
-    def readonly?
-      true
-    end
 
   end # module CachedRecord
 
@@ -88,8 +88,12 @@ module Invoicing
     def initialize(model_class, options={})
       @model_class = model_class
       @id_column = (options[:id] || 'id').to_s
+      reload_cache
+    end
+    
+    def reload_cache
       @cache = {}
-      for obj in model_class.find(:all)
+      for obj in @model_class.find(:all)
         @cache[obj.send(@id_column)] = obj
       end
     end
