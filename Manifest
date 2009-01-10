@@ -1,7 +1,8 @@
 CHANGELOG
 lib/invoicing/cached_record.rb
 lib/invoicing/countries/uk.rb
-lib/invoicing/invoice/invoice.rb
+lib/invoicing/ledger_item.rb
+lib/invoicing/line_item.rb
 lib/invoicing/tax/attr_taxable.rb
 lib/invoicing/time_dependent.rb
 lib/invoicing/utils.rb
