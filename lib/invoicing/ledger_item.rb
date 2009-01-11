@@ -155,23 +155,55 @@ module Invoicing
   #
   # +currency+::
   #   The 3-letter code which identifies the currency used in this transaction; must be one of the list
-  #   of codes in ISO-4217[http://en.wikipedia.org/wiki/ISO_4217].
+  #   of codes in ISO-4217[http://en.wikipedia.org/wiki/ISO_4217]. (Even if you only use one currency throughout
+  #   your site, this is needed to format amounts correctly.)
   #
-  # total_amount        # including all taxes and charges
-  # status              # Invoices: open, closed, cancelled; Payment: pending, cleared, failed
-  # is_debit?           # false => is credit
-  # is_visible?         # visible to user?
-  # note/description
+  # +total_amount+::
+  #   A decimal column containing the grand total monetary sum (of the invoice or credit note), or the monetary
+  #   amount paid (of the payment record), including all taxes, charges etc. See the documentation of the
+  #   +CurrencyRounding+ module for notes on choosing a suitable datatype for this column.
   #
+  # +status+::
+  #   A string column used to keep track of the status of ledger items. Currently the following values are defined
+  #   (but future versions may add further +status+ values):
+  #   +open+::      For invoices/credit notes: the document is not yet finalised, further line items may be added.
+  #   +closed+::    For invoices/credit notes: the document has been sent to the recipient and will not be changed again.
+  #   +cancelled+:: For invoices/credit notes: the document has been declared void and does not count towards accounts.
+  #   +pending+::   For payments: payment is expected or has been sent, but has not yet been confirmed as received.
+  #   +cleared+::   For payments: payment has completed successfully.
+  #   +failed+::    For payments: payment did not succeed; this record is not counted towards accounts.
   #
-  # optional ledger methods:
+  # +description+::
+  #   A method which returns a short string describing what this invoice, credit note or payment is about.
+  #   Can be a database column but doesn't have to be.
   #
-  # uuid
-  # period_start
-  # period_end
-  # tax_amount
-  # created_at
-  # updated_at
+  # The following methods/database columns are <b>optional, but recommended</b> for +LedgerItem+ objects:
+  #
+  # +period_start+, +period_end+::
+  #   Two datetime columns which define the period of time covered by an invoice or credit note. If the thing you
+  #   are selling is a one-off, you can omit these columns or leave them as +NULL+. However, if there is any sort
+  #   of duration associated with an invoice/credit note (e.g. charges incurred during a particular month, or
+  #   an annual subscription, or a validity period of a license, etc.), please store that period here. It's
+  #   important for accounting purposes. (For +Payment+ objects it usually makes most sense to just leave these
+  #   as +NULL+.)
+  #
+  # +tax_amount+::
+  #   If you're a small business you maybe don't need to add tax to your invoices; but if you are successful,
+  #   you almost certainly will need to do so eventually. In most countries this takes the form of Value Added
+  #   Tax (VAT) or Sales Tax. Use this column to store the amount of tax contained on the invoice (this figure
+  #   must be included in +total_amount+), so that you know how much of the payment value needs to go to the
+  #   taxman. See the documentation of the +CurrencyRounding+ module for notes on suitable datatypes for
+  #   monetary values.
+  #
+  # +uuid+::
+  #   A Universally Unique Identifier (UUID)[http://en.wikipedia.org/wiki/UUID] string for this invoice, credit
+  #   note or payment. It may seem unnecessary now, but may help you to keep track of your data later on as
+  #   your system grows.
+  #
+  # +created_at+, +updated_at+::
+  #   The standard ActiveRecord datetime columns for recording when an object was created and last changed.
+  #   The values are not directly used at the moment, but it's useful information in case you need to track down
+  #   a particular transaction sometime; and ActiveRecord manages them for you anyway.
   module LedgerItem
     
     module ActMethods
@@ -207,6 +239,13 @@ module Invoicing
       raise 'overwrite this method'
     end
     
+    def is_debit?
+      raise 'overwrite this method'
+    end
+    
+    def is_visible?
+      true
+    end
     
     # Usually there is no need to derive classes directly from <tt>Invoicing::LedgerItem::Base</tt>.
     # Use <tt>Invoicing::LedgerItem::Invoice</tt>, <tt>Invoicing::LedgerItem::CreditNote</tt>
