@@ -149,7 +149,7 @@ module Invoicing
         info.update(::Invoicing::CurrencyValue::CURRENCIES[code])
       end
       
-      info[:suffix] = true if info[:suffix].nil? && (info[:code] == info[:symbol])
+      info[:suffix] = true if info[:suffix].nil? && (info[:code] == info[:symbol]) && !info[:code].nil?
       info[:space]  = true if info[:space].nil?  && info[:suffix]
       info[:digits] = -Math.log10(info[:round]).floor if info[:digits].nil?
       
@@ -160,6 +160,7 @@ module Invoicing
     # +object+ is the model object carrying the value (used to determine the currency).
     def format_value(object, value)
       info = currency_info_for(object)
+      puts info.inspect
       
       # FIXME: take locale into account
       value = "%.#{info[:digits]}f" % value

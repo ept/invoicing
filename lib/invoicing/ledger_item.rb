@@ -167,7 +167,8 @@ module Invoicing
   #   +before_validation+ filter is automatically invoked, which adds up the +net_amount+ and +tax_amount+ values
   #   of all +LineItem+s and assigns that sum to +total_amount+. For payment records, which do not usually have
   #   +LineItem+s, you must assign the correct value to this column. See the documentation of the +CurrencyValue+
-  #   module for notes on suitable datatypes for monetary values.
+  #   module for notes on suitable datatypes for monetary values. +attr_currency_value+ is automatically applied
+  #   to this attribute.
   #
   # +status+::
   #   A string column used to keep track of the status of ledger items. Currently the following values are defined
@@ -200,7 +201,8 @@ module Invoicing
   #   a +before_validation+ filter is automatically invoked, which adds up the +tax_amount+ values of all
   #   +LineItem+s and assigns that sum to +total_amount+. For payment records this should be zero (unless you
   #   use a cash accounting scheme, which is currently not supported). See the documentation of the
-  #   +CurrencyValue+ module for notes on suitable datatypes for monetary values.
+  #   +CurrencyValue+ module for notes on suitable datatypes for monetary values. +attr_currency_value+ is
+  #   automatically applied to this attribute.
   #
   # +uuid+::
   #   A Universally Unique Identifier (UUID)[http://en.wikipedia.org/wiki/UUID] string for this invoice, credit
@@ -230,6 +232,11 @@ module Invoicing
         previous_info = (respond_to? :ledger_item_class_info) ? ledger_item_class_info : nil
         include ::Invoicing::LedgerItem if previous_info.nil?
         @ledger_item_class_info = ::Invoicing::LedgerItemClassInfo.new(self, previous_info, options)
+        
+        total_amount = @ledger_item_class_info.method(:total_amount)
+        tax_amount   = @ledger_item_class_info.method(:tax_amount)
+        currency     = @ledger_item_class_info.method(:currency)
+        attr_currency_value(total_amount, tax_amount, :currency => currency)        
       end
     end
     
@@ -286,7 +293,14 @@ module Invoicing
     # or a credit (+false+) on a particular ledger. Unless you know what you are doing, you probably
     # do not need to touch this method.
     #
-    # The argument +self_id+ should be equal to either +sender_id+ or +recipient_id+ of this object.
+    # It takes an argument +self_id+, which should be equal to either +sender_id+ or +recipient_id+ of this
+    # object, and which determines from which perspective the account is viewed. The default behaviour is:
+    # * A sent invoice (<tt>self_id == sender_id</tt>) is a debit since it increases the recipient's liability;
+    #   a sent credit note or a sent payment receipt is a credit because it decreases the recipient's
+    #   liability.
+    # * A received invoice (<tt>self_id == recipient_id</tt>) is a credit because it increases your own
+    #   liability; a received credit note or a received payment receipt is a debit because it decreases
+    #   your own liability.
     def is_debit?(self_id)
       sender_is_self = (sender_id == self_id) || (self_id.nil? && sender_details[:is_self])
       recipient_is_self = (recipient_id == self_id) || (self_id.nil? && recipient_details[:is_self])
@@ -297,10 +311,11 @@ module Invoicing
         raise ArgumentError, "self_id #{self_id.inspect} is both sender and recipient"
       end
       
-    end
-    
-    def is_visible?
-      true
+      if self.class.ledger_item_class_info.subtype == :invoice
+        sender_is_self
+      else
+        recipient_is_self
+      end
     end
     
     # Usually there is no need to derive classes directly from <tt>Invoicing::LedgerItem::Base</tt>.
@@ -334,7 +349,7 @@ module Invoicing
 
 
   # Stores state in the ActiveRecord class object
-  class TimeDependentClassInfo #:nodoc:
+  class LedgerItemClassInfo #:nodoc:
     attr_reader :methods, :subtype
     
     def initialize(model_class, previous_info, options={})
