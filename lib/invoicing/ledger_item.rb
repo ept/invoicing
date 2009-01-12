@@ -101,6 +101,8 @@ module Invoicing
   # methods and database columns as you like to support the operation of your application, provided
   # they don't interfere with names used here.
   #
+  # === Recognised methods in subclasses
+  #
   # The following methods/database columns are <b>required</b> for +LedgerItem+ objects:
   #
   # +type+::
@@ -128,12 +130,13 @@ module Invoicing
   #
   # +sender_details+::
   #   A method (does not have to be a database column) which returns a hash with information
-  #   about the party identified by +sender_id+. See below for the expected contents of the hash. Must always return
-  #   valid details, even if +sender_id+ is +NULL+.
+  #   about the party identified by +sender_id+. See the documentation of +sender_details+ for the expected
+  #   contents of the hash. Must always return valid details, even if +sender_id+ is +NULL+.
   #
   # +recipient_details+::
   #   A method (does not have to be a database column) which returns a hash with information
-  #   about the party identified by +recipient_id+. See below for the expected contents of the hash. Must always
+  #   about the party identified by +recipient_id+. See the documentation of +sender_details+ for the expected
+  #   contents of the hash (+recipient_details+ uses the same format as +sender_details+). Must always
   #   return valid details, even if +recipient_id+ is +NULL+.
   #
   # +identifier+::
@@ -160,8 +163,11 @@ module Invoicing
   #
   # +total_amount+::
   #   A decimal column containing the grand total monetary sum (of the invoice or credit note), or the monetary
-  #   amount paid (of the payment record), including all taxes, charges etc. See the documentation of the
-  #   +CurrencyRounding+ module for notes on choosing a suitable datatype for this column.
+  #   amount paid (of the payment record), including all taxes, charges etc. For invoices and credit notes, a
+  #   +before_validation+ filter is automatically invoked, which adds up the +net_amount+ and +tax_amount+ values
+  #   of all +LineItem+s and assigns that sum to +total_amount+. For payment records, which do not usually have
+  #   +LineItem+s, you must assign the correct value to this column. See the documentation of the +CurrencyValue+
+  #   module for notes on suitable datatypes for monetary values.
   #
   # +status+::
   #   A string column used to keep track of the status of ledger items. Currently the following values are defined
@@ -190,10 +196,11 @@ module Invoicing
   # +tax_amount+::
   #   If you're a small business you maybe don't need to add tax to your invoices; but if you are successful,
   #   you almost certainly will need to do so eventually. In most countries this takes the form of Value Added
-  #   Tax (VAT) or Sales Tax. Use this column to store the amount of tax contained on the invoice (this figure
-  #   must be included in +total_amount+), so that you know how much of the payment value needs to go to the
-  #   taxman. See the documentation of the +CurrencyRounding+ module for notes on suitable datatypes for
-  #   monetary values.
+  #   Tax (VAT) or Sales Tax. For invoices and credit notes, you must store the amount of tax in this table;
+  #   a +before_validation+ filter is automatically invoked, which adds up the +tax_amount+ values of all
+  #   +LineItem+s and assigns that sum to +total_amount+. For payment records this should be zero (unless you
+  #   use a cash accounting scheme, which is currently not supported). See the documentation of the
+  #   +CurrencyValue+ module for notes on suitable datatypes for monetary values.
   #
   # +uuid+::
   #   A Universally Unique Identifier (UUID)[http://en.wikipedia.org/wiki/UUID] string for this invoice, credit
@@ -204,6 +211,7 @@ module Invoicing
   #   The standard ActiveRecord datetime columns for recording when an object was created and last changed.
   #   The values are not directly used at the moment, but it's useful information in case you need to track down
   #   a particular transaction sometime; and ActiveRecord manages them for you anyway.
+  #
   module LedgerItem
     
     module ActMethods
@@ -215,32 +223,80 @@ module Invoicing
       # (which may be the case if you are retrofitting this invoicing gem to your existing application).
       #
       # This method accepts a hash of options, all of which are optional:
-      # * +subtype+ - One of <tt>:invoice</tt>, <tt>:credit_note</tt> or <tt>:payment</tt>.
+      # <tt>:subtype</tt>:: One of <tt>:invoice</tt>, <tt>:credit_note</tt> or <tt>:payment</tt>.
+      # Also, the name of any +LedgerItem+ subclass method (as documented on the +LedgerItem+ module)
+      # may be used, mapping it to the name which is actually used by the classes, to allow renaming.
       def acts_as_ledger_item(options={})
-        
+        previous_info = (respond_to? :ledger_item_class_info) ? ledger_item_class_info : nil
+        include ::Invoicing::LedgerItem if previous_info.nil?
+        @ledger_item_class_info = ::Invoicing::LedgerItemClassInfo.new(self, previous_info, options)
       end
     end
     
-    module InvoiceMethods
-      
+    def self.included(base)
+      base.send :extend, ClassMethods
     end
     
-    module CreditNoteMethods
-      
+    module ClassMethods #:nodoc:
+      attr_reader :ledger_item_class_info #:nodoc:
     end
     
-    module PaymentMethods
-      
-    end
-    
-    # sender/recipient details:
-    # is_self?
+    # You must overwrite this method in subclasses of +Invoice+, +CreditNote+ and +Payment+ so that it returns
+    # details of the party sending the document. See +sender_id+ above for a detailed interpretation of
+    # sender and receiver.
+    #
+    # The methods +sender_details+ and +recipient_details+ are required to return hashes
+    # containing details about the sender and recipient of an invoice, credit note or payment. The reason we
+    # do this is that you probably already have your own system for handling users, customers and their personal
+    # or business details, and this framework shouldn't require you to change any of that.
+    #
+    # The invoicing framework currently uses these details only for rendering invoices and credit notes, but
+    # in future it may serve more advanced purposes, such as determining which tax rate to apply for overseas
+    # customers.
+    #
+    # In the hash returned by +sender_details+ and +recipient_details+, the following keys are recognised --
+    # please fill in as many as possible:
+    # <tt>:is_self</tt>::      +true+ if these details refer to yourself, i.e. the person or organsiation who owns/operates
+    #                          this application. +false+ if these details refer to any other party.
+    # <tt>:name</tt>::         The name of the person or organisation whose billing address is defined below.
+    # <tt>:contact_name</tt>:: The name of a person/department within the organisation named by <tt>:name</tt>.
+    # <tt>:address</tt>::      The body of the billing address (not including city, postcode, state and country); may be
+    #                          a multi-line string, with lines separated by '\n' line breaks.
+    # <tt>:city</tt>::         The name of the city or town in the billing address.
+    # <tt>:state</tt>::        The state/region/province/county of the billing address as appropriate.
+    # <tt>:postal_code</tt>::  The postal code of the billing address (e.g. ZIP code in the US).
+    # <tt>:country</tt>::      The billing address country (human-readable).
+    # <tt>:country_code</tt>:: The two-letter country code of the billing address, according to
+    #                          ISO-3166-1[http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2].
+    # <tt>:vat_number</tt>::   The Value Added Tax registration code of this person or organisation, if they have
+    #                          one, preferably including the country identifier at the beginning. This is important for
+    #                          transactions within the European Union.
     def sender_details
       raise 'overwrite this method'
     end
     
-    def is_debit?
+    # You must overwrite this method in subclasses of +Invoice+, +CreditNote+ and +Payment+ so that it returns
+    # details of the party receiving the document. See +recipient_id+ above for a detailed interpretation of
+    # sender and receiver. See +sender_details+ for a list of fields to return in the hash.
+    def recipient_details
       raise 'overwrite this method'
+    end
+    
+    # Returns a boolean which specifies whether this transaction should be recorded as a debit (+true+)
+    # or a credit (+false+) on a particular ledger. Unless you know what you are doing, you probably
+    # do not need to touch this method.
+    #
+    # The argument +self_id+ should be equal to either +sender_id+ or +recipient_id+ of this object.
+    def is_debit?(self_id)
+      sender_is_self = (sender_id == self_id) || (self_id.nil? && sender_details[:is_self])
+      recipient_is_self = (recipient_id == self_id) || (self_id.nil? && recipient_details[:is_self])
+      unless sender_is_self || recipient_is_self
+        raise ArgumentError, "self_id #{self_id.inspect} is neither sender nor recipient"
+      end
+      if sender_is_self && recipient_is_self
+        raise ArgumentError, "self_id #{self_id.inspect} is both sender and recipient"
+      end
+      
     end
     
     def is_visible?
@@ -274,6 +330,34 @@ module Invoicing
       #acts_as_ledger_item :subtype => :payment
     end
     
+  end # module LedgerItem
+
+
+  # Stores state in the ActiveRecord class object
+  class TimeDependentClassInfo #:nodoc:
+    attr_reader :methods, :subtype
     
+    def initialize(model_class, previous_info, options={})
+      @model_class = model_class
+      @previous_info = previous_info # The LedgerItemClassInfo object if created previously on the same class
+      @subtype = options[:subtype]
+      
+      # @methods maps default model object column method names to the names actually used
+      @methods = {}
+      previous_methods = previous_info.nil? ? {} : previous_info.methods
+      [:id, :type, :sender_id, :recipient_id, :sender_details, :recipient_details, :identifier,
+          :issue_date, :currency, :total_amount, :status, :description, :period_start, :period_end,
+          :tax_amount, :uuid].each do |name|
+        @methods[name] = (options[name] || previous_methods[name] || name).to_s
+      end
+    end
+    
+    def method(name)
+      @methods[name.to_sym]
+    end
+    
+    def get(object, method_name)
+      object.nil? ? nil : object.send(method(method_name))
+    end
   end
 end
