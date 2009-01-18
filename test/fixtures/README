@@ -1,0 +1,7 @@
+The SQL files in this folder are executed once on the current ActiveRecord database connection
+before the tests are run. Use them to set up a database schema and any contents (fixtures)
+required by the tests. Tests are run in transactions and rolled back, so the database should
+be restored back to the state defined in these files after each test.
+
+It's important that all tables are created with option ENGINE=InnoDB, otherwise MySQL creates
+MyISAM tables which do not support transactions.

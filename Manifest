@@ -14,7 +14,8 @@ Manifest
 Rakefile
 README
 test/cached_record_test.rb
-test/fixtures/schema.sql
+test/fixtures/cached_record.sql
+test/fixtures/README
 test/ledger_item_test.rb
 test/setup.rb
 test/test_helper.rb
