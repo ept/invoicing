@@ -134,11 +134,13 @@ module Invoicing
   # * <tt>valid_until</tt> -- A column of type <tt>datetime</tt>, which contains the moment from
   #   which the rate is no longer valid. It may be <tt>NULL</tt>, in which case the the rate is
   #   taken to be "valid until further notice". If it is not <tt>NULL</tt>, it must contain a
-  #   date later than <tt>valid_from</tt>, and the <tt>replaced_by_id</tt> column must contain
-  #   the ID of a replacement object in this same table. The <tt>valid_from</tt> value of that
-  #   replacement object must be equal to the <tt>valid_until</tt> value of this object.
+  #   date strictly later than <tt>valid_from</tt>.
   # * <tt>replaced_by_id</tt> -- An integer, foreign key reference to the <tt>id</tt> column in
-  #   this same table. It is used only if <tt>valid_until</tt> is non-<tt>NULL</tt>.
+  #   this same table. If <tt>valid_until</tt> is <tt>NULL</tt>, <tt>replaced_by_id</tt> must also
+  #   be <tt>NULL</tt>. If <tt>valid_until</tt> is non-<tt>NULL</tt>, <tt>replaced_by_id</tt> may
+  #   or may not be <tt>NULL</tt>; if it refers to a replacement object, the <tt>valid_from</tt>
+  #   value of that replacement object must be equal to the <tt>valid_until</tt> value of this
+  #   object.
   #
   # Optionally, the table may have further columns:
   # * <tt>value</tt> -- The actual (usually numeric) value for which we're going to all this
@@ -201,16 +203,14 @@ module Invoicing
         if value_method != 'value'
           alias_method(value_method + '_at',  :value_at)
           alias_method(value_method + '_now', :value_now)
-          class_eval "class << self
-            alias_method('default_#{value_method}_at',  :default_value_at)
-            alias_method('default_#{value_method}_now', :default_value_now)
-          end"
+          class_eval <<-ALIAS
+            class << self
+              alias_method('default_#{value_method}_at',  :default_value_at)
+              alias_method('default_#{value_method}_now', :default_value_now)
+            end
+          ALIAS
         end
       end # acts_as_time_dependent
-      
-      def acts_as_tax_category(options={})
-        acts_as_time_dependent(options)
-      end
     end # module ActMethods
 
     
@@ -316,6 +316,9 @@ module Invoicing
     #   we try to follow the chain of +predecessors+ records. If there is an unambiguous predecessor
     #   record which is valid at the given point in time, it is returned; otherwise nil is returned.
     def record_at(point_in_time)
+      valid_from  = self.class.time_dependent_class_info.get(self, :valid_from)
+      valid_until = self.class.time_dependent_class_info.get(self, :valid_until)
+      
       if valid_from > point_in_time
         (predecessors.size == 1) ? predecessors[0].record_at(point_in_time) : nil
       elsif valid_until.nil? || (valid_until > point_in_time)
