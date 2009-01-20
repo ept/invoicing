@@ -7,6 +7,8 @@ require 'mocha'
 
 $: << File.join(File.dirname(__FILE__), '..', 'lib')
 
+ActiveSupport::Dependencies.load_paths << File.join(File.dirname(__FILE__), 'models')
+
 require 'invoicing'
 
 ActiveRecord::Base.establish_connection(

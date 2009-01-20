@@ -15,6 +15,7 @@ Echoe.new('invoicing', Invoicing::VERSION) do |p|
   p.email = 'rubyforge@eptcomputing.com'
   p.dependencies = ['activerecord >=2.1.0']
   p.docs_host = 'ept@rubyforge.org:/var/www/gforge-projects/invoicing/docs/'
+  p.test_pattern = 'test/*_test.rb' # do not include test/models/*.rb
   p.rcov_options = "-x '/Library/'"
 end
 
