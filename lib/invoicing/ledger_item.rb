@@ -240,7 +240,7 @@ module Invoicing
       end
     end
     
-    def self.included(base)
+    def self.included(base) #:nodoc:
       base.send :extend, ClassMethods
     end
     
