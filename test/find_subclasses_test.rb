@@ -5,7 +5,9 @@ require File.join(File.dirname(__FILE__), 'test_helper.rb')
 class TestBaseclass < ActiveRecord::Base
   set_table_name 'find_subclasses_records'
   set_inheritance_column 'type_name' # usually left as default 'type'. rename to test renaming
+  named_scope :with_coolness, lambda{|factor| {:conditions => {:coolness_factor => factor}}}
   include Invoicing::FindSubclasses
+  def self.coolness_factor; 3; end
 end
 
 class TestSubclass < TestBaseclass
@@ -13,17 +15,17 @@ class TestSubclass < TestBaseclass
 end
 
 class TestSubSubclass < TestSubclass
-
+  def self.coolness_factor; 5; end
 end
 
 module TestModule
   class TestInsideModuleSubclass < TestBaseclass
-
+    def self.coolness_factor; nil; end
   end
 end
 
 class TestOutsideModuleSubSubclass < TestModule::TestInsideModuleSubclass
-
+  def self.coolness_factor; 999; end
 end
 
 
@@ -50,5 +52,13 @@ class FindSubclassesTest < Test::Unit::TestCase
     assert_raise ActiveRecord::SubclassNotFound do
       SomeSillySuperclass.known_subclasses
     end
+  end
+  
+  def test_find
+    assert_equal [1, 2, 4], TestBaseclass.all(:conditions => {:coolness_factor => 3}).map{|r| r.id}.sort
+  end
+  
+  def test_find2
+    assert_equal [4], TestBaseclass.with_coolness(3).all(:conditions => ['id > 3']).map{|r| r.id}
   end
 end
