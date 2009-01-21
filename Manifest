@@ -1,5 +1,6 @@
 CHANGELOG
 lib/invoicing/cached_record.rb
+lib/invoicing/class_info.rb
 lib/invoicing/countries/uk.rb
 lib/invoicing/currency_value.rb
 lib/invoicing/find_subclasses.rb
@@ -15,9 +16,11 @@ Manifest
 Rakefile
 README
 test/cached_record_test.rb
+test/class_info_test.rb
 test/currency_value_test.rb
 test/find_subclasses_test.rb
 test/fixtures/cached_record.sql
+test/fixtures/class_info.sql
 test/fixtures/currency_value.sql
 test/fixtures/find_subclasses.sql
 test/fixtures/ledger_item.sql
