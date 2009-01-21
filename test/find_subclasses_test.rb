@@ -1,12 +1,19 @@
 require File.join(File.dirname(__FILE__), 'test_helper.rb')
 
+# Associated with TestBaseclass
+
+class FindSubclassesAssociate < ActiveRecord::Base
+end
+
+
 # Primary hierarchy of classes for testing.
 
 class TestBaseclass < ActiveRecord::Base
   set_table_name 'find_subclasses_records'
   set_inheritance_column 'type_name' # usually left as default 'type'. rename to test renaming
+  belongs_to :associate, :foreign_key => 'associate_id', :class_name => 'FindSubclassesAssociate'
   named_scope :with_coolness, lambda{|factor| {:conditions => {:coolness_factor => factor}}}
-  include Invoicing::FindSubclasses
+  extend Invoicing::FindSubclasses
   def self.coolness_factor; 3; end
 end
 
@@ -32,7 +39,7 @@ end
 # This class' table contains non-existent subclass names, to test errors
 
 class SomeSillySuperclass < ActiveRecord::Base
-  include Invoicing::FindSubclasses
+  extend Invoicing::FindSubclasses
   set_table_name 'find_subclasses_non_existent'
 end
 
@@ -48,17 +55,66 @@ class FindSubclassesTest < Test::Unit::TestCase
     assert_equal expected, TestBaseclass.known_subclasses.map{|cls| cls.name}.sort
   end
   
+  def test_known_subclasses_for_subtype
+    expected = ['TestSubSubclass', 'TestSubclass']
+    assert_equal expected, TestSubclass.known_subclasses.map{|cls| cls.name}.sort
+  end
+  
   def test_error_when_unknown_type_is_encountered
     assert_raise ActiveRecord::SubclassNotFound do
       SomeSillySuperclass.known_subclasses
     end
   end
   
-  def test_find
+  def test_class_method_condition_in_find
     assert_equal [1, 2, 4], TestBaseclass.all(:conditions => {:coolness_factor => 3}).map{|r| r.id}.sort
   end
   
-  def test_find2
-    assert_equal [4], TestBaseclass.with_coolness(3).all(:conditions => ['id > 3']).map{|r| r.id}
+  def test_class_method_condition_in_named_scope
+    assert_equal [6], TestBaseclass.with_coolness(999).map{|r| r.id}
+  end
+  
+  def test_class_method_condition_combined_with_column_condition_as_string_list
+    assert_equal [2, 4], TestBaseclass.with_coolness(3).all(:conditions => ["value LIKE ?", 'B%']).map{|r| r.id}.sort
+  end
+  
+  def test_class_method_condition_combined_with_column_condition_as_hash
+    assert_equal [1], TestBaseclass.scoped(:conditions => {:value => 'Mooo!', :coolness_factor => 3}).all.map{|r| r.id}
+  end
+  
+  def test_class_method_condition_combined_with_column_condition_on_joined_table_expressed_as_string
+    conditions = {'find_subclasses_associates.value' => 'Cool stuff', 'find_subclasses_records.coolness_factor' => 3}
+    assert_equal [1], TestBaseclass.all(:joins => :associate, :conditions => conditions).map{|r| r.id}
+  end
+  
+  def test_class_method_condition_combined_with_column_condition_on_joined_table_expressed_as_hash
+    conditions = {:find_subclasses_associates => {:value => 'Cool stuff'},
+                  :find_subclasses_records    => {:coolness_factor => 3}}
+    assert_equal [1], TestBaseclass.all(:joins => :associate, :conditions => conditions).map{|r| r.id}
+  end
+  
+  def test_class_method_condition_with_same_table_name
+    conditions = {'find_subclasses_records.value' => 'Baaa!', 'find_subclasses_records.coolness_factor' => 3}
+    assert_equal [2, 4], TestBaseclass.all(:conditions => conditions).map{|r| r.id}.sort
+  end
+  
+  def test_class_method_condition_with_list_of_alternatives
+    assert_equal [3, 6], TestBaseclass.all(:conditions => {:coolness_factor => [5, 999]}).map{|r| r.id}.sort
+  end
+  
+  def test_class_method_condition_with_range_of_alternatives
+    assert_equal [1, 2, 3, 4, 6], TestBaseclass.all(:conditions => {:coolness_factor => 1..1000}).map{|r| r.id}.sort
+  end
+  
+  def test_class_method_condition_invoked_on_subclass
+    assert_equal [2], TestSubclass.with_coolness(3).all.map{|r| r.id}
+  end
+  
+  def test_class_method_condition_false_type_coercion
+    assert_equal [5], TestBaseclass.find(:all, :conditions => {:coolness_factor => false}).map{|r| r.id}
+  end
+  
+  def test_class_method_condition_true_type_coercion
+    assert_equal [1, 2, 3, 4, 6], TestBaseclass.all(:conditions => {:coolness_factor => true}).map{|r| r.id}.sort
   end
 end
