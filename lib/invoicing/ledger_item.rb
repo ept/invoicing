@@ -65,15 +65,15 @@ module Invoicing
   # The exception are invoices on which you accumulate charges (e.g. over the course of a month)
   # and then officially 'send' the invoice at the end of the period. In this gem we call such
   # invoices +open+ while they may still be changed. It's ok to add charges to +open+ invoices
-  # as you go along; while it is +open+ it is not technically an invoice, but only a statement
+  # as you go along; while it is +open+ it is not legally an invoice, but only a statement
   # of accumulated charges. If you display it to users, make sure that you don't call it "invoice",
   # to avoid confusion. Only when you set it to +closed+ at the end of the month does the
-  # statement become an invoice for legal purposes. Once it's +closed+, of course you mustn't add
+  # statement become an invoice for legal purposes. Once it's +closed+ you must not add
   # any further charges to it.
   #
   # Finally, please only use positive numeric values on invoices, credit notes and payments (unless
-  # you have been given other instructions by your accountant). Use the +sender_id+ and +recipient_id+
-  # fields to indicate the direction of a transaction (see below).
+  # you have specifically been given other instructions by your accountant). Use the +sender_id+
+  # and +recipient_id+ fields to indicate the direction of a transaction (see below).
   #
   # == Using invoices, credit notes and payments in your application
   #
@@ -97,13 +97,13 @@ module Invoicing
   # You must create at least one subclass of each of +Invoice+, +CreditNote+ and +Payment+ and assign
   # them the same ActiveRecord table name (using <tt>ActiveRecord::Base#set_table_name</tt>). That
   # database table must have a certain minimum set of columns and a few common methods, documented
-  # below (although you may rename any of them if you wish). Beyond those, you may add as many other
-  # methods and database columns as you like to support the operation of your application, provided
-  # they don't interfere with names used here.
+  # below (although you may rename any of them if you wish). Beyond those, you may add other methods and
+  # database columns for your application's own needs, provided they don't interfere with names used here.
   #
-  # === Recognised methods in subclasses
+  # == Required methods/database columns
   #
-  # The following methods/database columns are <b>required</b> for +LedgerItem+ objects:
+  # The following methods/database columns are <b>required</b> for +LedgerItem+ objects (you may give them
+  # different names, but then you need to tell +acts_as_ledger_item+ about your custom names):
   #
   # +type+::
   #   String to store the class name, for ActiveRecord single table inheritance.
@@ -184,6 +184,9 @@ module Invoicing
   #   A method which returns a short string describing what this invoice, credit note or payment is about.
   #   Can be a database column but doesn't have to be.
   #
+  #
+  # == Optional methods/database columns
+  #
   # The following methods/database columns are <b>optional, but recommended</b> for +LedgerItem+ objects:
   #
   # +period_start+, +period_end+::
@@ -214,6 +217,14 @@ module Invoicing
   #   The values are not directly used at the moment, but it's useful information in case you need to track down
   #   a particular transaction sometime; and ActiveRecord manages them for you anyway.
   #
+  #
+  # == Generated methods
+  #
+  # In return for providing +LedgerItem+ with all the required information as documented above, you are given
+  # a number of class and instance methods which you will find useful sooner or later. In addition to those
+  # documented in this module, the following methods are generated dynamically:
+  #
+  # * FIXME describe dynamically generated methods
   module LedgerItem
     
     module ActMethods
