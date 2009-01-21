@@ -109,9 +109,9 @@ module Invoicing
       end
     end
     
-    
+     
     # Base class for +ClassInfo+ objects, from which you need to derive a subclass in each module where
-    # you want to use +ClassInfo+. An instance of a <tt>ClassInfo::Base</tt> subclass is created every
+    # you want to use +ClassInfo+. An instance of a <tt>ClassInfo::Base</tt> subclass is created every
     # time an +acts_as_+ method is called, and that instance can be accessed through the
     # +my_module_name_class_info+ method on the class which called +acts_as_my_module_name+.
     class Base
