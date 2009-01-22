@@ -176,30 +176,30 @@ module Invoicing
       #   end
       #   
       #   reseller_program = ReferralProgram.find(1)
-      #   commission = CommissionRate.for_referral_program(reseller_program).current_default_object
-      #   puts "Earn #{commission.rate} per cent commission as a reseller..."
+      #   current_commission = CommissionRate.for_referral_program(reseller_program).default_record_now
+      #   puts "Earn #{current_commission.rate} per cent commission as a reseller..."
       #   
-      #   for change_date in commission.changes_during_period(Time.now, 1.year.from_now)
-      #     new_rate = commission.record_at(change_date)
-      #     puts "Changing to #{new_rate} per cent on #{change_date.strftime('%d %b %Y')}!"
+      #   changes = current_commission.changes_until(1.year.from_now)
+      #   for next_commission in changes
+      #     message = next_commission.nil? ? "Discontinued as of" : "Changing to #{next_commission.rate} per cent on"
+      #     puts "#{message} #{current_commission.valid_until.strftime('%d %b %Y')}!"
+      #     current_commission = next_commission
       #   end
       #
-      def acts_as_time_dependent(options={})
-        return if @time_dependent_class_info
+      def acts_as_time_dependent(*args)
+        # Activate CachedRecord first, because ClassInfo#initialize expects the cache to be ready
+        acts_as_cached_record(*args)
         
-        acts_as_cached_record :id => (options[:id] || 'id')
-        
-        include ::Invoicing::TimeDependent
-        @time_dependent_class_info = ::Invoicing::TimeDependentClassInfo.new(self, options)
-        
+        Invoicing::ClassInfo.acts_as(Invoicing::TimeDependent, self, args)
+                
         # Create replaced_by association if it doesn't exist yet
-        replaced_by_id = @time_dependent_class_info.method(:replaced_by_id)
+        replaced_by_id = time_dependent_class_info.method(:replaced_by_id)
         unless respond_to? :replaced_by
           belongs_to :replaced_by, :class_name => class_name, :foreign_key => replaced_by_id
         end
         
         # Create value_at and value_now method aliases
-        value_method = @time_dependent_class_info.method(:value)
+        value_method = time_dependent_class_info.method(:value).to_s
         if value_method != 'value'
           alias_method(value_method + '_at',  :value_at)
           alias_method(value_method + '_now', :value_now)
@@ -214,14 +214,7 @@ module Invoicing
     end # module ActMethods
 
     
-    def self.included(base) #:nodoc:
-      base.send :extend, ClassMethods
-    end
-
-    
     module ClassMethods
-      attr_reader :time_dependent_class_info #:nodoc:
-      
       # Returns a list of records which are valid at some point during a particular date/time
       # range. If there is a change of rate during this time interval, and one rate replaces
       # another, then only the earliest element of each replacement chain is returned
@@ -236,7 +229,7 @@ module Invoicing
       # ability to choose from a selection of rates, including ones which are not yet
       # valid but will become valid within the next month, for example.
       def valid_records_during(not_before, not_after)
-        info = @time_dependent_class_info
+        info = time_dependent_class_info
         
         # List of all records whose validity period intersects the selected period
         valid_records = cached_record_list.select do |record|
@@ -257,7 +250,7 @@ module Invoicing
       # If you need to consider a period of time rather than a point in time, use
       # +valid_records_during+.
       def valid_records_at(point_in_time)
-        info = @time_dependent_class_info
+        info = time_dependent_class_info
         cached_record_list.select do |record|
           valid_from  = info.get(record, :valid_from)
           valid_until = info.get(record, :valid_until)
@@ -272,7 +265,7 @@ module Invoicing
       # multiple records marked as default, results are undefined.
       # This method only works if the model objects have an +is_default+ column.
       def default_record_at(point_in_time)
-        info = @time_dependent_class_info
+        info = time_dependent_class_info
         valid_records_at(point_in_time).select{|record| info.get(record, :is_default)}.first
       end
       
@@ -286,7 +279,7 @@ module Invoicing
       # +another_method_name+ (option to +acts_as_time_dependent+), then
       # +default_another_method_name_at+ is defined as an alias for +default_value_at+.
       def default_value_at(point_in_time)
-        @time_dependent_class_info.get(default_record_at(point_in_time), :value)
+        time_dependent_class_info.get(default_record_at(point_in_time), :value)
       end
     
       # Finds the current default record (like +default_record_now+),
@@ -303,7 +296,7 @@ module Invoicing
     # through their +replaced_by_id+ values. In other words, this method returns all records
     # which are direct predecessors of the current record in the replacement chain.
     def predecessors
-      self.class.time_dependent_class_info.predecessors(self)
+      time_dependent_class_info.predecessors(self)
     end
     
     # Translates this record into its replacement for a given point in time, if necessary/possible.
@@ -316,8 +309,8 @@ module Invoicing
     #   we try to follow the chain of +predecessors+ records. If there is an unambiguous predecessor
     #   record which is valid at the given point in time, it is returned; otherwise nil is returned.
     def record_at(point_in_time)
-      valid_from  = self.class.time_dependent_class_info.get(self, :valid_from)
-      valid_until = self.class.time_dependent_class_info.get(self, :valid_until)
+      valid_from  = time_dependent_class_info.get(self, :valid_from)
+      valid_until = time_dependent_class_info.get(self, :valid_until)
       
       if valid_from > point_in_time
         (predecessors.size == 1) ? predecessors[0].record_at(point_in_time) : nil
@@ -340,7 +333,7 @@ module Invoicing
     # the value in its +value+ column. If +value+ was renamed to +another_method_name+ (option to
     # +acts_as_time_dependent+), then +another_method_name_at+ is defined as an alias for +value_at+.
     def value_at(point_in_time)
-      self.class.time_dependent_class_info.get(record_at(point_in_time), :value)
+      time_dependent_class_info.get(record_at(point_in_time), :value)
     end
 
     # Returns +value_at+ for the current date/time. If +value+ was renamed to +another_method_name+
@@ -357,7 +350,7 @@ module Invoicing
     # expires before +point_in_time+ and without replacement, a +nil+ element is inserted
     # as the last element of the list.
     def changes_until(point_in_time)
-      info = self.class.time_dependent_class_info
+      info = time_dependent_class_info
       changes = []
       record = self
       while !record.nil?
@@ -369,44 +362,27 @@ module Invoicing
       changes
     end
     
-  end # module TimeDependent
-  
-  
-  # Stores state in the ActiveRecord class object
-  class TimeDependentClassInfo #:nodoc:
     
-    def initialize(model_class, options={})
-      @model_class = model_class
+    # Stores state in the ActiveRecord class object
+    class ClassInfo < Invoicing::ClassInfo::Base #:nodoc:
       
-      # @methods maps default model object column method names to the names actually used
-      @methods = {}
-      [:id, :valid_from, :valid_until, :replaced_by_id, :value, :is_default].each do |name|
-        @methods[name] = (options[name] || name).to_s
-      end
-      
-      # @predecessors is a hash of an ID pointing to the list of all objects which have that ID
-      # as replaced_by_id value
-      @predecessors = {}
-      for record in @model_class.cached_record_list
-        id = get(record, :replaced_by_id)
-        unless id.nil?
-          @predecessors[id] ||= []
-          @predecessors[id] << record
+      def initialize(model_class, previous_info, args)
+        super
+        # @predecessors is a hash of an ID pointing to the list of all objects which have that ID
+        # as replaced_by_id value
+        @predecessors = {}
+        for record in model_class.cached_record_list
+          id = get(record, :replaced_by_id)
+          unless id.nil?
+            @predecessors[id] ||= []
+            @predecessors[id] << record
+          end
         end
       end
-    end
-    
-    def method(name)
-      @methods[name.to_sym]
-    end
-    
-    def get(object, method_name)
-      object.nil? ? nil : object.send(method(method_name))
-    end
-    
-    def predecessors(record)
-      @predecessors[get(record, :id)] || []
-    end
-  end
-
+      
+      def predecessors(record)
+        @predecessors[get(record, :id)] || []
+      end
+    end # class ClassInfo
+  end # module TimeDependent
 end

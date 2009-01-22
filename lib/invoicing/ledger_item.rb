@@ -232,32 +232,26 @@ module Invoicing
       # payment notes). It is recommended that instead of using +acts_as_ledger_item+, you make your
       # invoice, credit note and payment classes subclasses of <tt>Invoicing::LedgerItem::Invoice</tt>,
       # <tt>Invoicing::LedgerItem::CreditNote</tt> and <tt>Invoicing::LedgerItem::Payment</tt> instead.
-      # Use +acts_as_ledger_item+ only if you do not want to change your existing class hierarchy
-      # (which may be the case if you are retrofitting this invoicing gem to your existing application).
+      # Use +acts_as_ledger_item+ only if you cannot change your existing class hierarchy (which may be
+      # the case if you are retrofitting this invoicing framework to your existing application), or if
+      # you have multiple disjoint hierarchies of ledger items in different tables (although I can't
+      # imagine why anybody would want to do that).
       #
       # This method accepts a hash of options, all of which are optional:
       # <tt>:subtype</tt>:: One of <tt>:invoice</tt>, <tt>:credit_note</tt> or <tt>:payment</tt>.
       # Also, the name of any +LedgerItem+ subclass method (as documented on the +LedgerItem+ module)
       # may be used, mapping it to the name which is actually used by the classes, to allow renaming.
-      def acts_as_ledger_item(options={})
-        previous_info = (respond_to? :ledger_item_class_info) ? ledger_item_class_info : nil
-        include ::Invoicing::LedgerItem if previous_info.nil?
-        @ledger_item_class_info = ::Invoicing::LedgerItemClassInfo.new(self, previous_info, options)
+      def acts_as_ledger_item(*args)
+        Invoicing::ClassInfo.acts_as(Invoicing::LedgerItem, self, args)
         
-        total_amount = @ledger_item_class_info.method(:total_amount)
-        tax_amount   = @ledger_item_class_info.method(:tax_amount)
-        currency     = @ledger_item_class_info.method(:currency)
+        # Set the 'amount' columns to act as currency values
+        total_amount = ledger_item_class_info.method(:total_amount)
+        tax_amount   = ledger_item_class_info.method(:tax_amount)
+        currency     = ledger_item_class_info.method(:currency)
         attr_currency_value(total_amount, tax_amount, :currency => currency)        
       end
     end
     
-    def self.included(base) #:nodoc:
-      base.send :extend, ClassMethods
-    end
-    
-    module ClassMethods #:nodoc:
-      attr_reader :ledger_item_class_info #:nodoc:
-    end
     
     # You must overwrite this method in subclasses of +Invoice+, +CreditNote+ and +Payment+ so that it returns
     # details of the party sending the document. See +sender_id+ above for a detailed interpretation of
@@ -355,35 +349,17 @@ module Invoicing
     class Payment < Base
       #acts_as_ledger_item :subtype => :payment
     end
-    
-  end # module LedgerItem
 
 
-  # Stores state in the ActiveRecord class object
-  class LedgerItemClassInfo #:nodoc:
-    attr_reader :methods, :subtype
-    
-    def initialize(model_class, previous_info, options={})
-      @model_class = model_class
-      @previous_info = previous_info # The LedgerItemClassInfo object if created previously on the same class
-      @subtype = options[:subtype]
+    # Stores state in the ActiveRecord class object
+    class ClassInfo < Invoicing::ClassInfo::Base #:nodoc:
+      attr_reader :subtype
       
-      # @methods maps default model object column method names to the names actually used
-      @methods = {}
-      previous_methods = previous_info.nil? ? {} : previous_info.methods
-      [:id, :type, :sender_id, :recipient_id, :sender_details, :recipient_details, :identifier,
-          :issue_date, :currency, :total_amount, :status, :description, :period_start, :period_end,
-          :tax_amount, :uuid].each do |name|
-        @methods[name] = (options[name] || previous_methods[name] || name).to_s
+      def initialize(model_class, previous_info, args)
+        super
+        @subtype = all_options[:subtype]
       end
     end
-    
-    def method(name)
-      @methods[name.to_sym]
-    end
-    
-    def get(object, method_name)
-      object.nil? ? nil : object.send(method(method_name))
-    end
-  end
+
+  end # module LedgerItem
 end
