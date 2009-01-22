@@ -102,7 +102,11 @@ class ClassInfoTestSubSubclass < ClassInfoTestSubclass2
 end
 
 class ClassInfoTest2Record < ActiveRecord::Base
-  acts_as_class_info_test2 :option1 => :okapi
+  acts_as_class_info_test2 :option1 => :okapi, :option3 => :kangaroo
+  
+  def option1; 'this is option1'; end
+  def option2; 'this is option2'; end
+  def kangaroo; 'bounce'; end
 end
 
 
@@ -209,6 +213,21 @@ class ClassInfoTest < Test::Unit::TestCase
   end
   
   def test_the_same_feature_in_two_models
-    assert_equal({:option1 => :okapi}, ClassInfoTest2Record.test2_class_info.all_options)
+    assert_equal({:option1 => :okapi, :option3 => :kangaroo}, ClassInfoTest2Record.test2_class_info.all_options)
+  end
+  
+  def test_method_renamed
+    assert_equal 'kangaroo', ClassInfoTest2Record.test2_class_info.method(:option3)
+    assert_equal 'bounce',   ClassInfoTest2Record.test2_class_info.get(ClassInfoTest2Record.find(1), :option3)
+  end
+
+  def test_database_column_renamed
+    assert_equal 'okapi',  ClassInfoTest2Record.test2_class_info.method(:option1)
+    assert_equal 'OKAPI!', ClassInfoTest2Record.test2_class_info.get(ClassInfoTest2Record.find(1), :option1)
+  end
+  
+  def test_method_not_renamed
+    assert_equal 'option2',         ClassInfoTest2Record.test2_class_info.method(:option2)
+    assert_equal 'this is option2', ClassInfoTest2Record.test2_class_info.get(ClassInfoTest2Record.find(1), :option2)
   end
 end

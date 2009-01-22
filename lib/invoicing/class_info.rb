@@ -161,14 +161,24 @@ module Invoicing
           @all_args = (@previous_info.all_args + @all_args).uniq
           @new_args = @all_args - previous_info.all_args
         end
-        #puts "current_args = #{@current_args.inspect}"
-        #puts "all_args = #{@all_args.inspect}"
-        #puts "new_args = #{@new_args.inspect}"
       end
       
       # Override this method to return a hash of default option values.
       def option_defaults
         {}
+      end
+    
+      # If there is an option with the given key, returns the associated value; otherwise returns
+      # the key. This is useful for mapping method names to their renamed equivalents through options.
+      def method(name)
+        name = name.to_sym
+        (all_options[name] || name).to_s
+      end
+      
+      # Returns the value returned by calling +method_name+ (renamed through options using +method+)
+      # on +object+, or +nil+ if +object+ is +nil+.
+      def get(object, method_name)
+        object.nil? ? nil : object.send(method(method_name))
       end
     end
   end

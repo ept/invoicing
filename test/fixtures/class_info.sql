@@ -16,5 +16,8 @@ DROP TABLE IF EXISTS class_info_test2_records;
 
 CREATE TABLE class_info_test2_records (
     id int primary key auto_increment,
-    value int
+    value int,
+    okapi varchar(255)
 );
+
+INSERT INTO class_info_test2_records(id, value, okapi) values(1, 1, 'OKAPI!');
