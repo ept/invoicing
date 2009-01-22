@@ -8,7 +8,6 @@ lib/invoicing/ledger_item.rb
 lib/invoicing/line_item.rb
 lib/invoicing/tax/attr_taxable.rb
 lib/invoicing/time_dependent.rb
-lib/invoicing/utils.rb
 lib/invoicing/version.rb
 lib/invoicing.rb
 LICENSE
