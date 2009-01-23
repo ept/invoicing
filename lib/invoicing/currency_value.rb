@@ -48,21 +48,40 @@ module Invoicing
     }
     
     module ActMethods
-      def attr_currency_value(*args)
+      def acts_as_currency_value(*args)
         Invoicing::ClassInfo.acts_as(Invoicing::CurrencyValue, self, args)
-        # Register before_validation handler if this is the first time attr_currency_value has been called
-        before_validation :convert_currency_values if currency_value_class_info.previous_info.nil?
+        # Register callbacks if this is the first time attr_currency_value has been called
+        if currency_value_class_info.previous_info.nil?
+          before_validation :convert_currency_values
+          before_save :write_back_currency_values
+        end
       end
     end
     
     
-    # Called automatically via +before_validation+. Performs the conversion of any values assigned
+    # Called automatically via +before_validation+. Performs the conversion/rounding of any values assigned
     # to +CurrencyValue+ attributes.
     def convert_currency_values
-      info = self.class.currency_value_class_info
+      info = currency_value_class_info
       currency_info = info.currency_info_for(self)
       return if currency_info.nil?
+      round_factor = BigDecimal(currency_info[:round].to_s)
       
+      info.all_args.each do |attr|
+        value = read_attribute(attr)
+        value = (value / round_factor).round * round_factor unless value.nil?
+        instance_variable_set("@#{attr}_rounded", value)
+      end
+    end
+    
+    # Called automatically via +before_save+. Writes the result of converting +CurrencyValue+ attributes
+    # back to the actual attributes, so that they are saved in the database. (This doesn't happen in
+    # +convert_currency_values+ to avoid losing the +_before_type_cast+ attribute values.)
+    def write_back_currency_values
+      currency_value_class_info.all_args.each do |attr|
+        value = instance_variable_get("@#{attr}_rounded")
+        write_attribute(attr, value) unless value.nil?
+      end
     end
 
 
@@ -78,7 +97,7 @@ module Invoicing
         model_class.class_eval do
           define_method(attr) do
             convert_currency_values
-            read_attribute(attr)
+            instance_variable_get("@#{attr}_rounded") || read_attribute(attr)
           end
           
           define_method("#{attr}=") do |new_value|
@@ -86,7 +105,12 @@ module Invoicing
           end
           
           define_method("#{attr}_formatted") do
-            self.class.currency_value_class_info.format_value(self, send(attr))
+            begin
+              value = Kernel.Float(send("#{attr}_before_type_cast"))
+              currency_value_class_info.format_value(self, value)
+            rescue ArgumentError, TypeError
+              ''  # if <attr>_before_type_cast could not be converted to float
+            end
           end
         end
       end
@@ -113,14 +137,15 @@ module Invoicing
         valid_options = [:symbol, :round, :suffix, :space, :digits, :format]
         code = currency_of(object)
         info = {:code => code, :symbol => code, :round => 0.01, :suffix => nil, :space => nil, :digits => nil}
-        all_options.each_pair {|key, value| info[key] = value if valid_options.include? key }
         if ::Invoicing::CurrencyValue::CURRENCIES.has_key? code
           info.update(::Invoicing::CurrencyValue::CURRENCIES[code])
         end
+        all_options.each_pair {|key, value| info[key] = value if valid_options.include? key }
         
         info[:suffix] = true if info[:suffix].nil? && (info[:code] == info[:symbol]) && !info[:code].nil?
         info[:space]  = true if info[:space].nil?  && info[:suffix]
         info[:digits] = -Math.log10(info[:round]).floor if info[:digits].nil?
+        info[:digits] = 0 if info[:digits] < 0
         
         info
       end

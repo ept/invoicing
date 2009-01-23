@@ -167,7 +167,7 @@ module Invoicing
   #   +before_validation+ filter is automatically invoked, which adds up the +net_amount+ and +tax_amount+ values
   #   of all +LineItem+s and assigns that sum to +total_amount+. For payment records, which do not usually have
   #   +LineItem+s, you must assign the correct value to this column. See the documentation of the +CurrencyValue+
-  #   module for notes on suitable datatypes for monetary values. +attr_currency_value+ is automatically applied
+  #   module for notes on suitable datatypes for monetary values. +acts_as_currency_value+ is automatically applied
   #   to this attribute.
   #
   # +status+::
@@ -204,7 +204,7 @@ module Invoicing
   #   a +before_validation+ filter is automatically invoked, which adds up the +tax_amount+ values of all
   #   +LineItem+s and assigns that sum to +total_amount+. For payment records this should be zero (unless you
   #   use a cash accounting scheme, which is currently not supported). See the documentation of the
-  #   +CurrencyValue+ module for notes on suitable datatypes for monetary values. +attr_currency_value+ is
+  #   +CurrencyValue+ module for notes on suitable datatypes for monetary values. +acts_as_currency_value+ is
   #   automatically applied to this attribute.
   #
   # +uuid+::
@@ -248,7 +248,7 @@ module Invoicing
         total_amount = ledger_item_class_info.method(:total_amount)
         tax_amount   = ledger_item_class_info.method(:tax_amount)
         currency     = ledger_item_class_info.method(:currency)
-        attr_currency_value(total_amount, tax_amount, :currency => currency)        
+        acts_as_currency_value(total_amount, tax_amount, :currency => currency)        
       end
     end
     

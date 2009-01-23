@@ -8,4 +8,18 @@ CREATE TABLE currency_value_records (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 INSERT INTO currency_value_records(id, currency_code, amount, tax_amount) values
-    (1, 'GBP', 123.45, NULL);
+    (1, 'GBP', 123.45, NULL),
+    (2, 'EUR', 98765432, 0.02),
+    (3, 'CNY', 5432, 0),
+    (4, 'JPY', 8888, 123),
+    (5, 'XXX', 123, NULL);
+
+    
+DROP TABLE IF EXISTS no_currency_column_records;
+
+CREATE TABLE no_currency_column_records (
+    id int primary key auto_increment,
+    amount decimal(20,4)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+INSERT INTO no_currency_column_records(id, amount) values(1, '95.15');
