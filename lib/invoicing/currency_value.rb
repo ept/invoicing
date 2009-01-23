@@ -25,10 +25,36 @@ module Invoicing
   # at a higher precision than you display, your numbers may appear to not add up correctly when you present
   # them to users. Fortunately, this module automatically performs currency-specific rounding for you.
   #
-  # == Using +attr_currency_value+
+  # == Using +acts_as_currency_value+
   #
   # This module simplifies model objects which need to store monetary values, by automatically taking care
-  # of currency rounding conventions.
+  # of currency rounding and formatting conventions. In a typical set-up, every model object which has one or
+  # more attributes storing monetary amounts (a price, a fee, a tax amount, a payment value, etc.) should also
+  # have a +currency+ column, which stores the ISO 4217 three-letter upper-case code identifying the currency.
+  # Annotate your model class with +acts_as_currency_value+, passing it a list of attribute names which store
+  # monetary amounts. If you refuse to store a +currency+ attribute, you may instead specify a default currency
+  # by passing a <tt>:currency_code => CODE</tt> option to +acts_as_currency_value+, but this is not recommended:
+  # even if you are only using one currency now, you may well expand into other currencies later. It is not
+  # possible to have multiple different currencies in the same model object.
+  #
+  # The +CurrencyValue+ module knows how to handle a set of default currencies (see +CURRENCIES+ below). If your
+  # currency is not supported in the way you want, you can extend/modify the hash yourself (please also send us
+  # a patch so that we can extend our list of inbuilt currencies):
+  #   Invoicing::CurrencyValue::CURRENCIES['HKD'] = {:symbol => 'HK$', :round => 0.10, :digits => 2}
+  # This specifies that the Hong Kong Dollar should be displayed using the 'HK$' symbol and two digits after the
+  # decimal point, but should always be rounded to the nearest 10 cents since the 10 cent coin is the smallest
+  # in circulation (therefore the second digit after the decimal point will always be zero).
+  #
+  # When that is done, you can use the model object normally, and rounding will occur automatically:
+  #   invoice.currency = 'HKD'
+  #   invoice.tax_amount = invoice.net_amount * TaxRates.default_rate_now  # 1234.56789
+  #   invoice.tax_amount == BigDecimal('1234.6')                           # true - rounded to nearest 0.01
+  #
+  # Moreover, you can just append +_formatted+ to your attribute name and get the value formatted for including
+  # in your views:
+  #   invoice.tax_amount_formatted                                         # 'HK$1,234.60'
+  # The string returned by a +_formatted+ method is UTF-8 encoded -- remember most currency symbols (except $)
+  # are outside basic 7-bit ASCII.
   module CurrencyValue
     
     # Data about currencies, indexed by ISO 4217 code. (Currently a very short list, in need of extending.)
@@ -48,9 +74,19 @@ module Invoicing
     }
     
     module ActMethods
+      # Declares that the current model object has columns storing monetary amounts. Pass those attribute
+      # names to +acts_as_currency_value+. By default, we try to find an attribute or method called +currency+,
+      # which stores the 3-letter ISO 4217 currency code for a record; if that attribute has a different name,
+      # specify the name using the <tt>:currency</tt> option. For example:
+      #
+      #   class Price < ActiveRecord::Base
+      #     validates_numericality_of :net_amount, :tax_amount
+      #     validates_inclusion_of :currency_code, %w( USD GBP EUR JPY )
+      #     acts_as_currency_value :net_amount, :tax_amount, :currency => :currency_code
+      #   end
       def acts_as_currency_value(*args)
         Invoicing::ClassInfo.acts_as(Invoicing::CurrencyValue, self, args)
-        # Register callbacks if this is the first time attr_currency_value has been called
+        # Register callbacks if this is the first time acts_as_currency_value has been called
         if currency_value_class_info.previous_info.nil?
           before_validation :convert_currency_values
           before_save :write_back_currency_values
@@ -119,7 +155,7 @@ module Invoicing
       # default currency code (set by the <tt>:currency_code</tt> option), if available; +nil+ if all
       # else fails.
       def currency_of(object)
-        if object.attributes.has_key?(method(:currency))
+        if object.attributes.has_key?(method(:currency)) || object.respond_to?(method(:currency))
           get(object, :currency)
         else
           all_options[:currency_code]
