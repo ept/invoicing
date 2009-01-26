@@ -86,39 +86,21 @@ module Invoicing
       #   end
       def acts_as_currency_value(*args)
         Invoicing::ClassInfo.acts_as(Invoicing::CurrencyValue, self, args)
-        # Register callbacks if this is the first time acts_as_currency_value has been called
-        if currency_value_class_info.previous_info.nil?
-          before_validation :convert_currency_values
-          before_save :write_back_currency_values
-        end
+
+        # Register callback if this is the first time acts_as_currency_value has been called
+        before_save :write_back_currency_values if currency_value_class_info.previous_info.nil?
       end
     end
     
-    
-    # Called automatically via +before_validation+. Performs the conversion/rounding of any values assigned
-    # to +CurrencyValue+ attributes.
-    def convert_currency_values
-      info = currency_value_class_info
-      currency_info = info.currency_info_for(self)
-      return if currency_info.nil?
-      round_factor = BigDecimal(currency_info[:round].to_s)
-      
-      info.all_args.each do |attr|
-        value = read_attribute(attr)
-        value = (value / round_factor).round * round_factor unless value.nil?
-        instance_variable_set("@#{attr}_rounded", value)
-      end
-    end
     
     # Called automatically via +before_save+. Writes the result of converting +CurrencyValue+ attributes
     # back to the actual attributes, so that they are saved in the database. (This doesn't happen in
     # +convert_currency_values+ to avoid losing the +_before_type_cast+ attribute values.)
     def write_back_currency_values
-      currency_value_class_info.all_args.each do |attr|
-        value = instance_variable_get("@#{attr}_rounded")
-        write_attribute(attr, value) unless value.nil?
-      end
+      currency_value_class_info.all_args.each {|attr| write_attribute(attr, send(attr)) }
     end
+    
+    protected :write_back_currency_values
 
 
     class ClassInfo < Invoicing::ClassInfo::Base #:nodoc:
@@ -132,8 +114,13 @@ module Invoicing
       def generate_attrs(attr)
         model_class.class_eval do
           define_method(attr) do
-            convert_currency_values
-            instance_variable_get("@#{attr}_rounded") || read_attribute(attr)
+            currency_value_class_info.call_before_conversion(self, attr)
+            currency_info = currency_value_class_info.currency_info_for(self)
+            return read_attribute(attr) if currency_info.nil?
+            round_factor = BigDecimal(currency_info[:round].to_s)
+            
+            value = read_attribute(attr)
+            value.nil? ? nil : (value / round_factor).round * round_factor
           end
           
           define_method("#{attr}=") do |new_value|
@@ -199,6 +186,19 @@ module Invoicing
         else
           info[:suffix] ? "#{value}#{info[:symbol]}" : "#{info[:symbol]}#{value}"
         end
+      end
+      
+      # If other modules have registered callbacks for the event of reading a rounded attribute,
+      # they are executed here. +attr+ is the name of the attribute being read.
+      def call_before_conversion(object, attr)
+        return if @call_before_conversion_in_progress
+        @call_before_conversion_in_progress = true # prevent infinite recursion
+        
+        if callbacks = all_options[:before_conversion]
+          [callbacks].flatten.each{|callback| object.send(callback, attr) }
+        end
+        
+        @call_before_conversion_in_progress = false
       end
     end
   end
