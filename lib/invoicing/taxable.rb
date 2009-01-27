@@ -8,7 +8,7 @@ module Invoicing
         
         attrs = taxable_class_info.new_args.map{|a| a.to_s }
         currency_attrs = attrs + attrs.map{|attr| "#{attr}_taxed"}
-        currency_opts = taxable_class_info.all_options.update({:before_conversion => :convert_taxable_value})
+        currency_opts = taxable_class_info.all_options.update({:conversion_input => :convert_taxable_value})
         acts_as_currency_value(currency_attrs, currency_opts)
         
         attrs.each {|attr| generate_attr_taxable_methods(attr) }
@@ -42,33 +42,22 @@ module Invoicing
     # Called internally to convert between taxed and untaxed values. You shouldn't usually need to
     # call this method from elsewhere.
     def convert_taxable_value(attr)
-      attr = attr.to_s.sub(/_taxed$/, '')
-      tax_logic = taxable_class_info.all_options[:tax_logic]
+      attr = attr.to_s
+      attr_without_suffix = attr.sub(/(_taxed)$/, '')
+      to_status = ($1 == '_taxed') ? :taxed : :untaxed
+
       @taxed_or_untaxed ||= {}
-      @taxed_attr_error ||= {}
+      from_status = @taxed_or_untaxed[attr_without_suffix] || :untaxed # taxed or untaxed most recently assigned?
       
-      if @taxed_or_untaxed[attr] == :taxed
-        value = read_attribute("#{attr}_taxed")
-        value = tax_logic.remove_tax({:model_object => self, :attribute => attr, :value => value}) unless value.nil?
-        write_attribute(attr, value)
-        
-        # Check whether a rounding error occurred. The call to write_attribute just now set
-        # @taxed_or_untaxed[attr] = :untaxed so when we call send(attr), the 'else' branch below will
-        # be executed, thus evaluating what happens if we re-apply tax to the tax-exclusive value.
-        # Sorry to make it so confusing.
-        new_value = send(attr)
-        if value == new_value
-          @taxed_attr_error[attr] = nil
-        elsif value > new_value
-          @taxed_attr_error[attr] = :low
-        else
-          @taxed_attr_error[attr] = :high
-        end
+      attr_to_read = attr_without_suffix
+      attr_to_read += '_taxed' if from_status == :taxed
+      
+      if from_status == :taxed && to_status == :taxed
+        # Special case: remove tax, apply rounding errors, apply tax again, apply rounding errors again.
+        write_attribute(attr_without_suffix, send(attr_without_suffix))
+        send(attr)
       else
-        value = read_attribute(attr)
-        value = tax_logic.apply_tax({:model_object => self, :attribute => attr, :value => value}) unless value.nil?
-        write_attribute("#{attr}_taxed", value)
-        @taxed_attr_error[attr] = nil
+        taxable_class_info.convert(self, attr_without_suffix, read_attribute(attr_to_read), from_status, to_status)
       end
     end
     
@@ -78,9 +67,21 @@ module Invoicing
     module ClassMethods #:nodoc:
       # Generate additional accessor method for attribute with getter +method_name+.
       def generate_attr_taxable_methods(method_name) #:nodoc:
+        
         define_method("#{method_name}_tax_rounding_error") do
-          convert_taxable_value(method_name)
-          @taxed_attr_error[method_name] 
+          original_value = read_attribute("#{method_name}_taxed")
+          return nil if original_value.nil? # Can only have a rounding error if the taxed attr was assigned
+          
+          original_value = BigDecimal.new(original_value.to_s)
+          converted_value = send("#{method_name}_taxed")
+          
+          if original_value == converted_value
+            nil
+          elsif original_value > converted_value
+            :low
+          else
+            :high
+          end        
         end
 
         define_method("#{method_name}_tax_info") do |*args|
@@ -107,6 +108,19 @@ module Invoicing
     
     
     class ClassInfo < Invoicing::ClassInfo::Base #:nodoc:
+      # Performs the conversion between taxed and untaxed values. Arguments +from_status+ and
+      # +to_status+ must each be either <tt>:taxed</tt> or <tt>:untaxed</tt>.
+      def convert(object, attr_without_suffix, value, from_status, to_status)
+        return nil if value.nil?
+        value = BigDecimal.new(value.to_s)
+        return value if from_status == to_status
+        
+        if to_status == :taxed
+          all_options[:tax_logic].apply_tax({:model_object => object, :attribute => attr_without_suffix, :value => value})
+        else
+          all_options[:tax_logic].remove_tax({:model_object => object, :attribute => attr_without_suffix, :value => value})
+        end
+      end
     end
     
   end

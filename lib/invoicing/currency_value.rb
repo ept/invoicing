@@ -114,12 +114,11 @@ module Invoicing
       def generate_attrs(attr)
         model_class.class_eval do
           define_method(attr) do
-            currency_value_class_info.call_before_conversion(self, attr)
             currency_info = currency_value_class_info.currency_info_for(self)
             return read_attribute(attr) if currency_info.nil?
             round_factor = BigDecimal(currency_info[:round].to_s)
             
-            value = read_attribute(attr)
+            value = currency_value_class_info.attr_conversion_input(self, attr)
             value.nil? ? nil : (value / round_factor).round * round_factor
           end
           
@@ -190,15 +189,18 @@ module Invoicing
       
       # If other modules have registered callbacks for the event of reading a rounded attribute,
       # they are executed here. +attr+ is the name of the attribute being read.
-      def call_before_conversion(object, attr)
-        return if @call_before_conversion_in_progress
-        @call_before_conversion_in_progress = true # prevent infinite recursion
-        
-        if callbacks = all_options[:before_conversion]
-          [callbacks].flatten.each{|callback| object.send(callback, attr) }
+      def attr_conversion_input(object, attr)
+        value = nil
+          
+        if callback = all_options[:conversion_input]
+          value = object.send(callback, attr)
         end
-        
-        @call_before_conversion_in_progress = false
+          
+        unless value
+          raw_value = object.read_attribute(attr)
+          value = BigDecimal.new(raw_value.to_s) unless raw_value.nil?
+        end
+        value
       end
     end
   end

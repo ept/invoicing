@@ -87,8 +87,37 @@ class TaxableTest < Test::Unit::TestCase
     record.amount = '1210.11'
     assert_equal BigDecimal('1382.98'), record.amount_taxed
     assert_equal BigDecimal('1210.11'), record.amount
-    assert_equal BigDecimal('1382.98'), record.amount_taxed_before_type_cast
     assert_equal '1210.11', record.amount_before_type_cast
+  end
+  
+  def test_assign_untaxed_then_taxed
+    record = TaxableRecord.find(1)
+    record.amount = '0.02'
+    record.amount_taxed = '1142.86'
+    assert_equal BigDecimal('1000.00'), record.amount
+    assert_equal BigDecimal('1142.86'), record.amount_taxed
+    assert_equal '1142.86', record.amount_taxed_before_type_cast
+  end
+  
+  def test_no_rounding_error
+    record = TaxableRecord.new(:amount_taxed => 100, :tax_factor => 1.0/3.0)
+    assert_nil record.amount_tax_rounding_error
+    assert_equal BigDecimal('100'), record.amount_taxed
+    assert_equal BigDecimal('75'), record.amount
+  end
+  
+  def test_rounding_error_high
+    record = TaxableRecord.new(:amount_taxed => 1.04, :tax_factor => 0.175)
+    assert_equal :high, record.amount_tax_rounding_error
+    assert_equal BigDecimal('0.89'), record.amount
+    assert_equal BigDecimal('1.05'), record.amount_taxed
+  end
+  
+  def test_rounding_error_low
+    record = TaxableRecord.new(:amount_taxed => 1.11, :tax_factor => 0.175)
+    assert_equal BigDecimal('1.10'), record.amount_taxed
+    assert_equal BigDecimal('0.94'), record.amount
+    assert_equal :low, record.amount_tax_rounding_error
   end
   
 end
