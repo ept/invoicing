@@ -15,7 +15,7 @@ module Invoicing
         
         if tax_logic = taxable_class_info.all_options[:tax_logic]
           other_methods = (tax_logic.respond_to?(:mixin_methods) ? tax_logic.mixin_methods : []) || []
-          other_methods.each {|method_name| generate_attr_taxable_other_method(tax_logic, method_name.to_s) }
+          other_methods.each {|method_name| generate_attr_taxable_other_method(method_name.to_s) }
         else
           raise ArgumentError, 'You must specify a :tax_logic option for acts_as_taxable'
         end
@@ -29,11 +29,14 @@ module Invoicing
       attribute = attribute.to_s
       attr_regex = taxable_class_info.all_args.map{|a| a.to_s }.join('|')
       @taxed_or_untaxed ||= {}
+      @taxed_attributes ||= {}
       
       if attribute =~ /^(#{attr_regex})$/
         @taxed_or_untaxed[attribute] = :untaxed
+        @taxed_attributes[attribute] = nil
       elsif attribute =~ /^(#{attr_regex})_taxed$/
         @taxed_or_untaxed[$1] = :taxed
+        @taxed_attributes[$1] = value
       end
       
       super
@@ -91,7 +94,26 @@ module Invoicing
 
         define_method("#{method_name}_tax_details") do |*args|
           tax_logic = taxable_class_info.all_options[:tax_logic]
-          tax_logic.tax_info({:model_object => self, :attribute => method_name}, *args)
+          tax_logic.tax_details({:model_object => self, :attribute => method_name}, *args)
+        end
+        
+        define_method("#{method_name}_with_tax_info") do |*args|
+          amount = send("#{method_name}_taxed_formatted")
+          tax_info = send("#{method_name}_tax_info").to_s
+          tax_info.blank? ? amount : "#{amount} #{tax_info}"
+        end
+        
+        define_method("#{method_name}_with_tax_details") do |*args|
+          amount = send("#{method_name}_taxed_formatted")
+          tax_details = send("#{method_name}_tax_details").to_s
+          tax_details.blank? ? amount : "#{amount} #{tax_details}"
+        end
+        
+        define_method("#{method_name}_taxed_before_type_cast") do
+          @taxed_attributes ||= {}
+          @taxed_attributes[method_name] ||
+            read_attribute_before_type_cast("#{method_name}_taxed") ||
+            send("#{method_name}_taxed")
         end
       end
       

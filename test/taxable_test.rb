@@ -1,3 +1,5 @@
+# encoding: utf-8
+
 require File.join(File.dirname(__FILE__), 'test_helper.rb')
 
 class TaxableTest < Test::Unit::TestCase
@@ -34,26 +36,49 @@ class TaxableTest < Test::Unit::TestCase
         "(tax not applicable)"
       end
     end
+    
+    def some_other_method(options, param1, param2)
+      param1 * param2 + options[:model_object].id
+    end
+    
+    def mixin_methods
+      [:some_other_method]
+    end
   end
 
 
   class TaxableRecord < ActiveRecord::Base
     validates_numericality_of :amount
-    acts_as_taxable :amount, :tax_logic => SimpleTaxLogic.new
+    acts_as_taxable :amount, :gross_amount, :tax_logic => SimpleTaxLogic.new, :currency => :currency_code
+  end
+  
+  class NonsenseClass < ActiveRecord::Base
+    set_table_name 'taxable_record'
   end
 
 
   ######################################################################
   
+  def test_raises_error_if_no_tax_logic_is_specified
+    assert_raise ArgumentError do
+      NonsenseClass.class_eval do
+        acts_as_taxable :amount
+      end
+    end
+  end
+  
   def test_apply_tax_on_existing_record
     record = TaxableRecord.find(1)
-    assert_equal record.gross_amount, record.amount_taxed
+    assert_equal BigDecimal('141.09'), record.amount_taxed
+    assert_equal BigDecimal('123.45'), record.amount
   end
   
   def test_apply_tax_on_new_record
-    record = TaxableRecord.new(:amount => '200', :tax_factor => '0.4')
+    record = TaxableRecord.new(:amount => '200', :tax_factor => '0.4', :currency_code => 'USD')
     assert_equal BigDecimal('280'), record.amount_taxed
     assert_equal BigDecimal('200'), record.amount
+    assert_equal '$280.00', record.amount_taxed_formatted
+    assert_equal '$200.00', record.amount_formatted
     assert_equal '200', record.amount_before_type_cast
     record.save!
     assert_equal([{'amount' => '200.0000'}],
@@ -65,6 +90,8 @@ class TaxableTest < Test::Unit::TestCase
     record.amount_taxed = 114.29
     assert_equal BigDecimal('100.00'), record.amount
     assert_equal BigDecimal('114.29'), record.amount_taxed
+    assert_equal '£100.00', record.amount_formatted
+    assert_equal '£114.29', record.amount_taxed_formatted
     assert_equal 114.29, record.amount_taxed_before_type_cast
     record.save!
     assert_equal([{'amount' => '100.0000'}],
@@ -72,9 +99,11 @@ class TaxableTest < Test::Unit::TestCase
   end
   
   def test_remove_tax_on_new_record
-    record = TaxableRecord.new(:amount_taxed => '360', :tax_factor => '0.2')
+    record = TaxableRecord.new(:amount_taxed => '360', :tax_factor => '0.2', :currency_code => 'USD')
     assert_equal BigDecimal('300'), record.amount
     assert_equal BigDecimal('360'), record.amount_taxed
+    assert_equal '$300.00', record.amount_formatted
+    assert_equal '$360.00', record.amount_taxed_formatted
     assert_equal '360', record.amount_taxed_before_type_cast
     record.save!
     assert_equal([{'amount' => '300.0000'}],
@@ -120,4 +149,32 @@ class TaxableTest < Test::Unit::TestCase
     assert_equal :low, record.amount_tax_rounding_error
   end
   
+  def test_tax_info
+    record = TaxableRecord.find(1)
+    assert_equal "(inc. tax)", record.amount_tax_info
+    assert_equal "", record.gross_amount_tax_info
+  end
+  
+  def test_tax_details
+    record = TaxableRecord.find(1)
+    assert_equal "(including 14.29% tax)", record.amount_tax_details
+    assert_equal "(tax not applicable)", record.gross_amount_tax_details
+  end
+
+  def test_with_tax_info
+    record = TaxableRecord.find(1)
+    assert_equal "£141.09 (inc. tax)", record.amount_with_tax_info
+    assert_equal "£141.09", record.gross_amount_with_tax_info
+  end
+  
+  def test_with_tax_details
+    record = TaxableRecord.find(1)
+    assert_equal "£141.09 (including 14.29% tax)", record.amount_with_tax_details
+    assert_equal "£141.09 (tax not applicable)", record.gross_amount_with_tax_details
+  end
+  
+  def test_other_method
+    record = TaxableRecord.find(1)
+    assert_equal 49, record.some_other_method(6, 8)
+  end
 end
