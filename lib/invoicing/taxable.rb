@@ -41,10 +41,10 @@ module Invoicing
   # <tt><attr>_taxed</tt>::                  Returns the amount of money including tax, as computed by the tax
   #                                          logic, subject to the model object's currency rounding conventions.
   # <tt><attr>_taxed=</tt>::                 Assigns a new value (including tax) to the attribute.
-  # <tt><attr>_tax_rounding_error</tt>::     Returns <tt>nil</tt>, <tt>:high</tt> or <tt>:low</tt> depending
-  #                                          whether the tax-inclusive value of the attribute has changed as
-  #                                          a result of currency rounding. See the section 'currency rounding
-  #                                          errors' below.
+  # <tt><attr>_tax_rounding_error</tt>::     Returns a number indicating how much the tax-inclusive value of the
+  #                                          attribute has changed as a result of currency rounding. See the section
+  #                                          'currency rounding errors' below. +nil+ if the +_taxed=+ attribute
+  #                                          has not been assigned.
   # <tt><attr>_tax_info</tt>::               Returns a short string to inform a user about the tax status of
   #                                          the value returned by <tt><attr>_taxed</tt>; this could be
   #                                          "inc. VAT", for example, if the +_taxed+ attribute includes VAT.
@@ -132,16 +132,88 @@ module Invoicing
   #
   # == Tax logic objects
   #
-  # A tax logic object is an instance of a class with the following 
-  # +acts_as_taxable+ implies +acts_as_currency_value+ for the same columns
-  # with 
+  # A tax logic object is an instance of a class with the following structure:
   #
-  # taxed must be greater than or equal to untaxed.
+  #   class MyTaxLogic
+  #     def apply_tax(params)
+  #       # Called to convert a value without tax into a value with tax, as applicable. params is a hash:
+  #       #   :model_object => The model object whose attribute is being converted
+  #       #   :attribute    => The name of the attribute (without '_taxed' suffix) being converted
+  #       #   :value        => The untaxed value of the attribute as a BigDecimal
+  #       # Should return a number greater than or equal to the input value. Don't worry about rounding --
+  #       # CurrencyValue deals with that.
+  #     end
+  #    
+  #     def remove_tax(params)
+  #       # Does the reverse of apply_tax -- converts a value with tax into a value without tax. The params
+  #       # hash has the same format. First applying tax and then removing it again should always result in the
+  #       # starting value (for the the same object and the same environment -- it may depend on time,
+  #       # global variables, etc).
+  #     end
+  #    
+  #     def tax_info(params, *args)
+  #       # Should return a short string to explain to users which operation has been performed by apply_tax
+  #       # (e.g. if apply_tax has added VAT, the string could be "inc. VAT"). The params hash is the same as
+  #       # given to apply_tax. Additional parameters are optional; if any arguments are passed to a call to
+  #       # model_object.<attr>_tax_info then they are passed on here.
+  #     end
+  #    
+  #     def tax_details(params, *args)
+  #       # Like tax_info, but should return a longer string for use in user interface elements which are less
+  #       # limited in size.
+  #     end
+  #    
+  #     def mixin_methods
+  #       # Optionally you can define a method mixin_methods which returns a list of method names which should
+  #       # be included in classes which use this tax logic. Methods defined here become instance methods of
+  #       # model objects with acts_as_taxable attributes. For example:
+  #       [:some_other_method]
+  #     end
+  #    
+  #     def some_other_method(params, *args)
+  #       # some_other_method was named by mixin_methods to be included in model objects. For example, if the
+  #       # class MyProduct uses MyTaxLogic, then MyProduct.find(1).some_other_method(:foo, 'bar') will
+  #       # translate into MyTaxLogic#some_other_method({:model_object => MyProduct.find(1)}, :foo, 'bar').
+  #       # The model object on which the method is called is passed under the key :model_object in the
+  #       # params hash, and all other arguments to the method are simply passed on.
+  #     end
+  #   end
+  #
   #
   # == Currency rounding errors
-  #
+  # 
+  # Both the taxed and the untaxed value of an attribute are currency values, and so they must both be rounded
+  # to the accuracy which is conventional for the currency in use (see the discussion of precision and rounding
+  # in the +CurrencyValue+ module). If we are always storing untaxed values and outputting taxed values to the
+  # user, this is not a problem. However, if we allow users to input taxed values (like in the form example
+  # above), something curious may happen: The input value has its tax removed, is rounded to the currency's
+  # conventional precision and stored in the database in untaxed form; then later it is loaded, tax is added
+  # again, it is again rounded to the currency's conventional precision, and displayed to the user. If the
+  # rounding steps have rounded the number upwards twice, or downwards twice, it may happen that the value
+  # displayed to the user differs slightly from the one they originally entered.
+  # 
+  # We believe that storing untaxed values and performing currency rounding are the right things to do, and this
+  # apparent rounding error is a natural consequence. This module therefore tries to deal with the error
+  # elegantly: If you assign a value to a taxed attribute and immediately read it again, it will return the
+  # same value as if it had been stored and loaded again (i.e. the number you read has been rounded twice --
+  # make sure the currency code has been assigned to the object beforehand, so that the +CurrencyValue+ module
+  # knows which precision to apply).
+  # 
+  # Moreover, after assigning a value to a <tt><attr>_taxed=</tt> attribute, the <tt><attr>_tax_rounding_error</tt>
+  # method can tell you whether and by how much the value has changed as a result of removing and re-applying
+  # tax. A negative number indicates that the converted amount is less than the input; a positive number indicates
+  # that it is more than entered by the user; and zero means that there was no difference.
+  # 
   module Taxable
     module ActMethods
+      # Declares that one or more attributes on this model object store monetary values to which tax may be
+      # applied. Takes one or more attribute names, followed by an options hash:
+      # <tt>:tax_logic</tt>:: Object with instance methods apply_tax, remove_tax, tax_info and tax_details
+      #                       as documented in the +Taxable+ module. Required.
+      # <tt>:currency</tt>::  The name of the attribute/database column which stores the ISO 4217 currency
+      #                       code for the monetary amounts in this model object. Required if the column
+      #                       is not called +currency+.
+      # +acts_as_taxable+ implies +acts_as_currency_value+ with the same options. See the +Taxable+ for details.
       def acts_as_taxable(*args)
         Invoicing::ClassInfo.acts_as(Invoicing::Taxable, self, args)
         
@@ -163,8 +235,8 @@ module Invoicing
     
     # If +write_attribute+ is called on a taxable attribute, we note whether the taxed or the untaxed
     # version contains the latest correct value. We don't do the conversion immediately in case the tax
-    # logic requires a value of another attribute (which may be assigned later) to do its calculation.
-    def write_attribute(attribute, value)
+    # logic requires the value of another attribute (which may be assigned later) to do its calculation.
+    def write_attribute(attribute, value) #:nodoc:
       attribute = attribute.to_s
       attr_regex = taxable_class_info.all_args.map{|a| a.to_s }.join('|')
       @taxed_or_untaxed ||= {}
@@ -183,7 +255,7 @@ module Invoicing
     
     # Called internally to convert between taxed and untaxed values. You shouldn't usually need to
     # call this method from elsewhere.
-    def convert_taxable_value(attr)
+    def convert_taxable_value(attr) #:nodoc:
       attr = attr.to_s
       attr_without_suffix = attr.sub(/(_taxed)$/, '')
       to_status = ($1 == '_taxed') ? :taxed : :untaxed
@@ -217,23 +289,18 @@ module Invoicing
           original_value = BigDecimal.new(original_value.to_s)
           converted_value = send("#{method_name}_taxed")
           
-          if original_value == converted_value
-            nil
-          elsif original_value > converted_value
-            :low
-          else
-            :high
-          end        
+          return nil if converted_value.nil?
+          converted_value - original_value
         end
 
         define_method("#{method_name}_tax_info") do |*args|
           tax_logic = taxable_class_info.all_options[:tax_logic]
-          tax_logic.tax_info({:model_object => self, :attribute => method_name}, *args)
+          tax_logic.tax_info({:model_object => self, :attribute => method_name, :value => send(method_name)}, *args)
         end
 
         define_method("#{method_name}_tax_details") do |*args|
           tax_logic = taxable_class_info.all_options[:tax_logic]
-          tax_logic.tax_details({:model_object => self, :attribute => method_name}, *args)
+          tax_logic.tax_details({:model_object => self, :attribute => method_name, :value => send(method_name)}, *args)
         end
         
         define_method("#{method_name}_with_tax_info") do |*args|

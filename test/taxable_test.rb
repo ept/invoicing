@@ -130,14 +130,14 @@ class TaxableTest < Test::Unit::TestCase
   
   def test_no_rounding_error
     record = TaxableRecord.new(:amount_taxed => 100, :tax_factor => 1.0/3.0)
-    assert_nil record.amount_tax_rounding_error
+    assert_equal BigDecimal('0'), record.amount_tax_rounding_error
     assert_equal BigDecimal('100'), record.amount_taxed
     assert_equal BigDecimal('75'), record.amount
   end
   
   def test_rounding_error_high
     record = TaxableRecord.new(:amount_taxed => 1.04, :tax_factor => 0.175)
-    assert_equal :high, record.amount_tax_rounding_error
+    assert_equal BigDecimal('0.01'), record.amount_tax_rounding_error
     assert_equal BigDecimal('0.89'), record.amount
     assert_equal BigDecimal('1.05'), record.amount_taxed
   end
@@ -146,7 +146,7 @@ class TaxableTest < Test::Unit::TestCase
     record = TaxableRecord.new(:amount_taxed => 1.11, :tax_factor => 0.175)
     assert_equal BigDecimal('1.10'), record.amount_taxed
     assert_equal BigDecimal('0.94'), record.amount
-    assert_equal :low, record.amount_tax_rounding_error
+    assert_equal BigDecimal('-0.01'), record.amount_tax_rounding_error
   end
   
   def test_tax_info
