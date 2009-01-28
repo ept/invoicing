@@ -43,7 +43,8 @@ module Invoicing
   #   Payments may often be associated one-to-one with invoices, but not necessarily -- an invoice
   #   may be paid in instalments, or several invoices may be lumped together to one payment. Your
   #   customer may even refuse to pay some charges, in which case there is an invoice but no payment
-  #   (until at some point you write it off as bad debt, but that's beyond our scope right now).
+  #   (until at some point you either reverse it with a credit note, or write it off as bad debt,
+  #   but that's beyond our scope right now).
   #
   # Another very important principle is that once a piece of information has been added to the
   # ledger, you <b>should not modify or delete it</b>. Particularly when you have 'sent' one of your
@@ -95,7 +96,7 @@ module Invoicing
   # credit card payments, cash payments, bank transfers etc.
   #
   # You must create at least one subclass of each of +Invoice+, +CreditNote+ and +Payment+ and assign
-  # them the same ActiveRecord table name (using <tt>ActiveRecord::Base#set_table_name</tt>). That
+  # them the same ActiveRecord table name (using <tt>ActiveRecord::Base.set_table_name</tt>). That
   # database table must have a certain minimum set of columns and a few common methods, documented
   # below (although you may rename any of them if you wish). Beyond those, you may add other methods and
   # database columns for your application's own needs, provided they don't interfere with names used here.
@@ -150,8 +151,8 @@ module Invoicing
   #     +identifier+ (because it then must be unique within the sender's organisation, not yours).
   #
   # +issue_date+::
-  #   A datetime column which indicates the date on which the document is issued, and which also
-  #   serves as the tax point (the date which determines which tax rate is applied). This should be a separate
+  #   A datetime column which indicates the date on which the document is issued, and which may also
+  #   serve as the tax point (the date which determines which tax rate is applied). This should be a separate
   #   column, because it won't necessarily be the same as +created_at+ or +updated_at+. There may be business
   #   reasons for choosing particular dates, but the date at which you send the invoice or receive the payment
   #   should do unless your accountant advises you otherwise.
@@ -159,7 +160,7 @@ module Invoicing
   # +currency+::
   #   The 3-letter code which identifies the currency used in this transaction; must be one of the list
   #   of codes in ISO-4217[http://en.wikipedia.org/wiki/ISO_4217]. (Even if you only use one currency throughout
-  #   your site, this is needed to format amounts correctly.)
+  #   your site, this is needed to format monetary amounts correctly.)
   #
   # +total_amount+::
   #   A decimal column containing the grand total monetary sum (of the invoice or credit note), or the monetary
@@ -169,6 +170,16 @@ module Invoicing
   #   +LineItem+s, you must assign the correct value to this column. See the documentation of the +CurrencyValue+
   #   module for notes on suitable datatypes for monetary values. +acts_as_currency_value+ is automatically applied
   #   to this attribute.
+  #
+  # +tax_amount+::
+  #   If you're a small business you maybe don't need to add tax to your invoices; but if you are successful,
+  #   you almost certainly will need to do so eventually. In most countries this takes the form of Value Added
+  #   Tax (VAT) or Sales Tax. For invoices and credit notes, you must store the amount of tax in this table;
+  #   a +before_validation+ filter is automatically invoked, which adds up the +tax_amount+ values of all
+  #   +LineItem+s and assigns that sum to +total_amount+. For payment records this should be zero (unless you
+  #   use a cash accounting scheme, which is currently not supported). See the documentation of the
+  #   +CurrencyValue+ module for notes on suitable datatypes for monetary values. +acts_as_currency_value+ is
+  #   automatically applied to this attribute.
   #
   # +status+::
   #   A string column used to keep track of the status of ledger items. Currently the following values are defined
@@ -197,20 +208,11 @@ module Invoicing
   #   important for accounting purposes. (For +Payment+ objects it usually makes most sense to just leave these
   #   as +NULL+.)
   #
-  # +tax_amount+::
-  #   If you're a small business you maybe don't need to add tax to your invoices; but if you are successful,
-  #   you almost certainly will need to do so eventually. In most countries this takes the form of Value Added
-  #   Tax (VAT) or Sales Tax. For invoices and credit notes, you must store the amount of tax in this table;
-  #   a +before_validation+ filter is automatically invoked, which adds up the +tax_amount+ values of all
-  #   +LineItem+s and assigns that sum to +total_amount+. For payment records this should be zero (unless you
-  #   use a cash accounting scheme, which is currently not supported). See the documentation of the
-  #   +CurrencyValue+ module for notes on suitable datatypes for monetary values. +acts_as_currency_value+ is
-  #   automatically applied to this attribute.
-  #
   # +uuid+::
   #   A Universally Unique Identifier (UUID)[http://en.wikipedia.org/wiki/UUID] string for this invoice, credit
   #   note or payment. It may seem unnecessary now, but may help you to keep track of your data later on as
-  #   your system grows.
+  #   your system grows. If you have the +uuid+ gem installed and this column is present, a UUID is automatically
+  #   generated when you create a new ledger item.
   #
   # +created_at+, +updated_at+::
   #   The standard ActiveRecord datetime columns for recording when an object was created and last changed.
@@ -244,12 +246,20 @@ module Invoicing
       def acts_as_ledger_item(*args)
         Invoicing::ClassInfo.acts_as(Invoicing::LedgerItem, self, args)
         
+        before_validation :calculate_total_amount
+        
         # Set the 'amount' columns to act as currency values
         total_amount = ledger_item_class_info.method(:total_amount)
         tax_amount   = ledger_item_class_info.method(:tax_amount)
         currency     = ledger_item_class_info.method(:currency)
         acts_as_currency_value(total_amount, tax_amount, :currency => currency)        
       end
+    end
+    
+    
+    def calculate_total_amount
+      # Calculate sum of net_amount and tax_amount across all line items, and assign it to total_amount;
+      # calculate sum of tax_amount across all line items, and assign it to tax_amount.
     end
     
     
@@ -328,6 +338,15 @@ module Invoicing
     # and <tt>Invoicing::LedgerItem::Payment</tt> instead.
     class Base < ::ActiveRecord::Base
       #acts_as_ledger_item
+      
+      def initialize(*args)
+        super
+        # Initialise uuid attribute if possible
+        info = ledger_item_class_info
+        if self.has_attribute?(info.method(:uuid)) && info.uuid_generator
+          write_attribute(info.method(:uuid), info.uuid_generator.generate)
+        end
+      end
     end
     
     # Base class for all types of invoice in your application.
@@ -353,11 +372,18 @@ module Invoicing
 
     # Stores state in the ActiveRecord class object
     class ClassInfo < Invoicing::ClassInfo::Base #:nodoc:
-      attr_reader :subtype
+      attr_reader :subtype, :uuid_generator
       
       def initialize(model_class, previous_info, args)
         super
         @subtype = all_options[:subtype]
+        
+        @uuid_generator = nil
+        begin # try to load the UUID gem
+          require 'uuid'
+          @uuid_generator = UUID.new
+        rescue LoadError, NameError # silently ignore if gem not found
+        end
       end
     end
 
