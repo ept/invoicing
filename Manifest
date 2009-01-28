@@ -6,6 +6,8 @@ lib/invoicing/currency_value.rb
 lib/invoicing/find_subclasses.rb
 lib/invoicing/ledger_item.rb
 lib/invoicing/line_item.rb
+lib/invoicing/price.rb
+lib/invoicing/tax_rate.rb
 lib/invoicing/taxable.rb
 lib/invoicing/time_dependent.rb
 lib/invoicing/version.rb
@@ -24,7 +26,9 @@ test/fixtures/currency_value.sql
 test/fixtures/find_subclasses.sql
 test/fixtures/ledger_item.sql
 test/fixtures/line_item.sql
+test/fixtures/price.sql
 test/fixtures/README
+test/fixtures/tax_rate.sql
 test/fixtures/taxable.sql
 test/fixtures/time_dependent.sql
 test/ledger_item_test.rb
@@ -32,7 +36,9 @@ test/line_item_test.rb
 test/models/README
 test/models/test_subclass_in_another_file.rb
 test/models/test_subclass_not_in_database.rb
+test/price_test.rb
 test/setup.rb
+test/tax_rate_test.rb
 test/taxable_test.rb
 test/test_helper.rb
 test/time_dependent_test.rb
