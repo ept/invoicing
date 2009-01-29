@@ -214,6 +214,9 @@ module Invoicing
   #   your system grows. If you have the +uuid+ gem installed and this column is present, a UUID is automatically
   #   generated when you create a new ledger item.
   #
+  # +due_date+::
+  #   The date at which the invoice or credit note is due for payment. +nil+ on +Payment+ records.
+  #
   # +created_at+, +updated_at+::
   #   The standard ActiveRecord datetime columns for recording when an object was created and last changed.
   #   The values are not directly used at the moment, but it's useful information in case you need to track down
@@ -245,7 +248,6 @@ module Invoicing
       # may be used, mapping it to the name which is actually used by the classes, to allow renaming.
       def acts_as_ledger_item(*args)
         Invoicing::ClassInfo.acts_as(Invoicing::LedgerItem, self, args)
-        
         before_validation :calculate_total_amount
         
         # Set the 'amount' columns to act as currency values
@@ -253,6 +255,14 @@ module Invoicing
         tax_amount   = ledger_item_class_info.method(:tax_amount)
         currency     = ledger_item_class_info.method(:currency)
         acts_as_currency_value(total_amount, tax_amount, :currency => currency)        
+      end
+      
+      # This callback is invoked when ActMethods has been mixed into ActiveRecord::Base.
+      def self.extended(other) #:nodoc:
+        Invoicing::LedgerItem::Base.acts_as_ledger_item
+        Invoicing::LedgerItem::Invoice.acts_as_ledger_item    :subtype => :invoice
+        Invoicing::LedgerItem::CreditNote.acts_as_ledger_item :subtype => :credit_note
+        Invoicing::LedgerItem::Payment.acts_as_ledger_item    :subtype => :payment
       end
     end
     

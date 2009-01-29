@@ -83,13 +83,38 @@ module Invoicing
   #   grows. If you have the +uuid+ gem installed and this column is present, a UUID is automatically
   #   generated when you create a new line item.
   #
-  # tax_point           # Datetime
-  # tax_rate_id         # Reference to acts_as_tax_rate
-  # price_id            # Reference to acts_as_price
-  # quantity            # Numeric
-  # created_at
-  # updated_at
-  # creator_id          # Reference to user whose action caused this line item to be created
+  # +tax_point+::
+  #   A datetime column which indicates the date on which the sale is made and/or the service is provided.
+  #   It is related to the +issue_date+ on the associated invoice/credit note, but does not necessarily
+  #   have the same value. The exact technicalities will vary by jurisdiction, but generally this is the
+  #   point in time which determines into which month or which tax period you count a sale. The value may
+  #   be the same as +created_at+ or +updated_at+, but not necessarily.
+  #
+  # +tax_rate_id+::
+  #   A foreign key of integer type, referencing another model class in your application which represents
+  #   the tax rate applied to this line item. The tax rate model object should use +acts_as_tax_rate+.
+  #   This attribute is necessary if you want tax calculations to be performed automatically.
+  #
+  # +price_id+::
+  #   A foreign key of integer type, referencing another model class in your application which represents
+  #   the unit price (e.g. a reference to a the product, or to a particular price band of a service). The
+  #   model object thus referred to should use +acts_as_price+. This attribute allows you to get better
+  #   reports of how much you sold of what.
+  #
+  # +quantity+::
+  #   A numeric (integer or decimal) type, saying how many units of a particular product or service this
+  #   line item represents. Default is 1. Note that if you specify a +quantity+, the values for +net_amount+
+  #   and +tax_amount+ must be the cost of the given quantity as a whole; if you need to display the unit
+  #   price, you can get it by dividing +net_amount+ by +quantity+, or by referring to +price_id+.
+  #
+  # +creator_id+::
+  #   The ID of the user whose action caused this line item to be created or updated. This can be useful
+  #   for audit trail purposes, particularly if you allow multiple users of your application to act on
+  #   behalf of the same customer organisation.
+  #
+  # +created_at+, +updated_at+::
+  #   These standard datetime columns are also recommended.
+  #
   module LineItem
     module ActMethods
       def acts_as_line_item(*args)
@@ -100,7 +125,16 @@ module Invoicing
     
     class Base < ActiveRecord::Base
       
+      def initialize(*args)
+        super
+        # Initialise uuid attribute if possible
+        info = line_item_class_info
+        if self.has_attribute?(info.method(:uuid)) && info.uuid_generator
+          write_attribute(info.method(:uuid), info.uuid_generator.generate)
+        end
+      end
     end
+    
     
     class ClassInfo < Invoicing::ClassInfo::Base #:nodoc:
       attr_reader :uuid_generator
