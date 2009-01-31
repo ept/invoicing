@@ -314,6 +314,20 @@ module Invoicing
       raise 'overwrite this method'
     end
     
+    # Returns +true+ if this document was sent by the user with ID +user_id+. If the argument is +nil+
+    # (indicating yourself), this also returns +true+ if <tt>sender_details[:is_self]</tt>.
+    def sent_by?(user_id)
+      (ledger_item_class_info.get(self, :sender_id) == user_id) ||
+        !!(user_id.nil? && ledger_item_class_info.get(self, :sender_details)[:is_self])
+    end
+    
+    # Returns +true+ if this document was received by the user with ID +user_id+. If the argument is +nil+
+    # (indicating yourself), this also returns +true+ if <tt>recipient_details[:is_self]</tt>.
+    def received_by?(user_id)
+      (ledger_item_class_info.get(self, :recipient_id) == user_id) ||
+        !!(user_id.nil? && ledger_item_class_info.get(self, :recipient_details)[:is_self])
+    end
+    
     # Returns a boolean which specifies whether this transaction should be recorded as a debit (+true+)
     # or a credit (+false+) on a particular ledger. Unless you know what you are doing, you probably
     # do not need to touch this method.
@@ -326,27 +340,25 @@ module Invoicing
     # * A received invoice (<tt>self_id == recipient_id</tt>) is a credit because it increases your own
     #   liability; a received credit note or a received payment receipt is a debit because it decreases
     #   your own liability.
-    def is_debit?(self_id)
-      sender_is_self = (sender_id == self_id) || (self_id.nil? && sender_details[:is_self])
-      recipient_is_self = (recipient_id == self_id) || (self_id.nil? && recipient_details[:is_self])
-      unless sender_is_self || recipient_is_self
-        raise ArgumentError, "self_id #{self_id.inspect} is neither sender nor recipient"
-      end
-      if sender_is_self && recipient_is_self
-        raise ArgumentError, "self_id #{self_id.inspect} is both sender and recipient"
-      end
+    def debit?(self_id)
+      sender_is_self = sent_by?(self_id)
+      recipient_is_self = received_by?(self_id)
+      raise ArgumentError, "self_id #{self_id.inspect} is neither sender nor recipient" unless sender_is_self || recipient_is_self
+      raise ArgumentError, "self_id #{self_id.inspect} is both sender and recipient" if sender_is_self && recipient_is_self
       
-      if self.class.ledger_item_class_info.subtype == :invoice
-        sender_is_self
-      else
-        recipient_is_self
+      case ledger_item_class_info.subtype
+        when :invoice then sender_is_self
+        when :credit_note then recipient_is_self
+        when :payment then recipient_is_self
+        else raise RuntimeError, "Ledger item subtype #{ledger_item_class_info.subtype.inspect} not recognised. Please give a " +
+                                 "valid :subtype => ... argument to acts_as_ledger_item, or override the debit? method."
       end
     end
     
     # Usually there is no need to derive classes directly from <tt>Invoicing::LedgerItem::Base</tt>.
     # Use <tt>Invoicing::LedgerItem::Invoice</tt>, <tt>Invoicing::LedgerItem::CreditNote</tt>
     # and <tt>Invoicing::LedgerItem::Payment</tt> instead.
-    class Base < ::ActiveRecord::Base
+    class Base < ActiveRecord::Base
       #acts_as_ledger_item
       
       def initialize(*args)
@@ -361,12 +373,12 @@ module Invoicing
     
     # Base class for all types of invoice in your application.
     class Invoice < Base
-      #acts_as_ledger_item :subtype => :invoice
+      # acts_as_ledger_item is called in ActMethods.extended
     end
     
     # Base class for all types of credit note in your application.
     class CreditNote < Base
-      #acts_as_ledger_item :subtype => :credit_note
+      # acts_as_ledger_item is called in ActMethods.extended
     end
     
     # Base class for all types of payment note in your application.
@@ -376,7 +388,7 @@ module Invoicing
     # credit card handling and implement it in a subclass of +Payment+, you're more than welcome,
     # of course.
     class Payment < Base
-      #acts_as_ledger_item :subtype => :payment
+      # acts_as_ledger_item is called in ActMethods.extended
     end
 
 
