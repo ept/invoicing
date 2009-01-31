@@ -10,6 +10,10 @@ module MyNamespace
       end
     end
     
+    def get_class_info
+      class_info_test_module_class_info
+    end
+    
     def my_instance_method
       class_info_test_module_class_info.the_answer / value
     end
@@ -99,6 +103,9 @@ end
 
 class ClassInfoTestSubSubclass < ClassInfoTestSubclass2
   acts_as_class_info_test 112, :option3 => 1234
+end
+
+class ClassInfoTestEmptySubclass < ClassInfoTestRecord
 end
 
 class ClassInfoTest2Record < ActiveRecord::Base
@@ -229,5 +236,10 @@ class ClassInfoTest < Test::Unit::TestCase
   def test_method_not_renamed
     assert_equal 'option2',         ClassInfoTest2Record.test2_class_info.method(:option2)
     assert_equal 'this is option2', ClassInfoTest2Record.test2_class_info.get(ClassInfoTest2Record.find(1), :option2)
+  end
+  
+  def test_inherited_to_empty_subclass
+    assert_not_nil ClassInfoTestEmptySubclass.new.get_class_info
+    assert_equal ClassInfoTestEmptySubclass.new.get_class_info, ClassInfoTestRecord.new.get_class_info
   end
 end

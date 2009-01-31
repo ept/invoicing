@@ -82,22 +82,17 @@ module Invoicing
       calling_class.instance_variable_set("@#{class_info_method}", class_info)
       
       # Define a getter class method on calling_class through which the ClassInfo::Base
-      # instance can be accessed; also overwrite the 'inherited' method so that the instance
-      # is copied into subclasses as they are created.
+      # instance can be accessed.
       calling_class.class_eval <<-CLASSEVAL
         class << self
-          attr_reader "#{class_info_method}"
+          def #{class_info_method}
+            if superclass.private_instance_methods(true).include?("#{class_info_method}")
+              @#{class_info_method} ||= superclass.send("#{class_info_method}")
+            end
+            @#{class_info_method}
+          end
           private "#{class_info_method}"
         end
-        
-        module CopyClassInfoToSubclasses
-          def inherited(subclass)
-            subclass.send(:instance_variable_set, "@#{class_info_method}", #{class_info_method})
-            super
-          end    
-        end
-        
-        extend CopyClassInfoToSubclasses
       CLASSEVAL
       
       # For convenience, also define an instance method which does the same as the class method
