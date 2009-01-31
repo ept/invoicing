@@ -1,0 +1,4 @@
+-- For consistency with line_item.sql:
+-- 1 is at 15%
+-- 2 is at 0%
+-- 3 is not applicable (null)

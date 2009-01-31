@@ -68,7 +68,7 @@ end
 class LedgerItemTest < Test::Unit::TestCase
   
   def test_should_be_true
-    assert_nil InvoiceSubtype.first
+    assert_not_nil InvoiceSubtype.first
   end
   
 end
