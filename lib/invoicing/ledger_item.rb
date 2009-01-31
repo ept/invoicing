@@ -166,8 +166,8 @@ module Invoicing
   #   A decimal column containing the grand total monetary sum (of the invoice or credit note), or the monetary
   #   amount paid (of the payment record), including all taxes, charges etc. For invoices and credit notes, a
   #   +before_validation+ filter is automatically invoked, which adds up the +net_amount+ and +tax_amount+ values
-  #   of all +LineItem+s and assigns that sum to +total_amount+. For payment records, which do not usually have
-  #   +LineItem+s, you must assign the correct value to this column. See the documentation of the +CurrencyValue+
+  #   of all line items and assigns that sum to +total_amount+. For payment records, which do not usually have
+  #   line items, you must assign the correct value to this column. See the documentation of the +CurrencyValue+
   #   module for notes on suitable datatypes for monetary values. +acts_as_currency_value+ is automatically applied
   #   to this attribute.
   #
@@ -176,7 +176,7 @@ module Invoicing
   #   you almost certainly will need to do so eventually. In most countries this takes the form of Value Added
   #   Tax (VAT) or Sales Tax. For invoices and credit notes, you must store the amount of tax in this table;
   #   a +before_validation+ filter is automatically invoked, which adds up the +tax_amount+ values of all
-  #   +LineItem+s and assigns that sum to +total_amount+. For payment records this should be zero (unless you
+  #   line items and assigns that sum to +total_amount+. For payment records this should be zero (unless you
   #   use a cash accounting scheme, which is currently not supported). See the documentation of the
   #   +CurrencyValue+ module for notes on suitable datatypes for monetary values. +acts_as_currency_value+ is
   #   automatically applied to this attribute.
