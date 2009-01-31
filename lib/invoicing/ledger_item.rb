@@ -195,6 +195,10 @@ module Invoicing
   #   A method which returns a short string describing what this invoice, credit note or payment is about.
   #   Can be a database column but doesn't have to be.
   #
+  # +line_items+::
+  #   You should define an association <tt>has_many :line_items, ...</tt> referring to the +LineItem+ object
+  #   associated with this ledger item.
+  #
   #
   # == Optional methods/database columns
   #
@@ -254,7 +258,7 @@ module Invoicing
         total_amount = ledger_item_class_info.method(:total_amount)
         tax_amount   = ledger_item_class_info.method(:tax_amount)
         currency     = ledger_item_class_info.method(:currency)
-        acts_as_currency_value(total_amount, tax_amount, :currency => currency)        
+        acts_as_currency_value(total_amount, tax_amount, :currency => currency)
       end
       
       # This callback is invoked when ActMethods has been mixed into ActiveRecord::Base.
@@ -267,9 +271,40 @@ module Invoicing
     end
     
     
+    # Calculate sum of net_amount and tax_amount across all line items, and assign it to total_amount;
+    # calculate sum of tax_amount across all line items, and assign it to tax_amount.
+    # Called automatically as a +before_validation+ callback.
     def calculate_total_amount
-      # Calculate sum of net_amount and tax_amount across all line items, and assign it to total_amount;
-      # calculate sum of tax_amount across all line items, and assign it to tax_amount.
+      net_total = tax_total = BigDecimal('0')
+      line_items = ledger_item_class_info.get(self, :line_items)
+      
+      line_items.each do |line|
+        info = line.send(:line_item_class_info)
+        
+        # Make sure ledger_item association is assigned -- the CurrencyValue
+        # getters depend on it to fetch the currency
+        info.set(line, :ledger_item, self)
+        net_amount = info.get(line, :net_amount)
+        tax_amount = info.get(line, :tax_amount)
+        net_total += net_amount unless net_amount.nil?
+        tax_total += tax_amount unless tax_amount.nil?
+      end
+      
+      self.total_amount = net_total + tax_total
+      self.tax_amount = tax_total
+    end
+    
+    # We don't actually implement anything using +method_missing+ at the moment, but use it to
+    # generate slightly more useful error messages in certain cases.
+    def method_missing(method_id, *args)
+      method_name = method_id.to_s
+      if ['line_items', ledger_item_class_info.method(:line_items)].include? method_name
+        raise RuntimeError, "You need to define an association like 'has_many :line_items' on #{self.class.name}. If you " +
+          "have defined the association with a different name, pass the option :line_items => :your_association_name to " +
+          "acts_as_ledger_item."
+      else
+        super
+      end
     end
     
     
@@ -359,7 +394,7 @@ module Invoicing
     # Use <tt>Invoicing::LedgerItem::Invoice</tt>, <tt>Invoicing::LedgerItem::CreditNote</tt>
     # and <tt>Invoicing::LedgerItem::Payment</tt> instead.
     class Base < ActiveRecord::Base
-      #acts_as_ledger_item
+      # acts_as_ledger_item is called in ActMethods.extended
       
       def initialize(*args)
         super

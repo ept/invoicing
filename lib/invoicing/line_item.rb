@@ -72,6 +72,10 @@ module Invoicing
   # +description+::
   #   A method which returns a short string explaining to your user what this line item is for.
   #   Can be a database column but doesn't have to be.
+  #
+  # +ledger_item+::
+  #   You should define an association <tt>belongs_to :ledger_item, ...</tt> referring to the +LedgerItem+
+  #   (invoice/credit note) object to which this line item belongs.
   #  
   # == Optional methods/database columns
   #
@@ -118,7 +122,29 @@ module Invoicing
   module LineItem
     module ActMethods
       def acts_as_line_item(*args)
+        Invoicing::ClassInfo.acts_as(Invoicing::LineItem, self, args)
         
+        # Set the 'amount' columns to act as currency values
+        net_amount = line_item_class_info.method(:net_amount)
+        tax_amount = line_item_class_info.method(:tax_amount)
+        acts_as_currency_value(net_amount, tax_amount)
+      end
+    end
+    
+    # Returns the currency code of the ledger item to which this line item belongs.
+    def currency
+      ledger_item = line_item_class_info.get(self, :ledger_item)
+      ledger_item.send(:ledger_item_class_info).get(ledger_item, :currency)
+    end
+    
+    def method_missing(method_id, *args)
+      method_name = method_id.to_s
+      if ['ledger_item', line_item_class_info.method(:ledger_item)].include? method_name
+        raise RuntimeError, "You need to define an association like 'belongs_to :ledger_item' on #{self.class.name}. If you " +
+          "have defined the association with a different name, pass the option :ledger_item => :your_association_name to " +
+          "acts_as_line_item."
+      else
+        super
       end
     end
     

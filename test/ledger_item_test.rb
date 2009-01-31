@@ -9,7 +9,8 @@ module LedgerItemMethods
     :identifier => :identifier2, :issue_date => :issue_date2, :currency => :currency2,
     :total_amount => :total_amount2, :tax_amount => :tax_amount2, :status => :status2,
     :description => :description2, :period_start => :period_start2,
-    :period_end => :period_end2, :uuid => :uuid2, :due_date => :due_date2
+    :period_end => :period_end2, :uuid => :uuid2, :due_date => :due_date2,
+    :line_items => :line_items2
   }
   
   def user_id_to_details_hash(user_id)
@@ -55,6 +56,7 @@ class MyInvoice < Invoicing::LedgerItem::Invoice
   set_table_name 'ledger_item_records'
   include LedgerItemMethods
   acts_as_ledger_item RENAMED_METHODS
+  has_many :line_items2, :class_name => 'SuperLineItem', :foreign_key => 'ledger_item_id2'
 end
 
 class InvoiceSubtype < MyInvoice
@@ -219,6 +221,27 @@ class LedgerItemTest < Test::Unit::TestCase
   def test_must_overwrite_recipient_details
     assert_raise RuntimeError do
       OverwrittenMethodsNotPresent.new.recipient_details
+    end
+  end
+  
+  def test_must_provide_line_items_association
+    assert_raise RuntimeError do
+      OverwrittenMethodsNotPresent.new.line_items
+    end
+  end
+  
+  def test_calculate_total_amount_for_new_invoice
+    invoice = MyInvoice.new(:currency2 => 'USD')
+    invoice.line_items2 << SuperLineItem.new(:net_amount2 => 100, :tax_amount2 => 15)
+    invoice.line_items2 << SubLineItem.new(:net_amount2 => 10)
+    invoice.valid?
+    assert_equal BigDecimal('125'), invoice.total_amount
+    assert_equal BigDecimal('15'), invoice.tax_amount
+  end
+  
+  def test_line_items_error
+    assert_raise RuntimeError do
+      MyInvoice.find(1).line_items # not line_items2
     end
   end
   

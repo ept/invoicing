@@ -8,7 +8,7 @@ module LineItemMethods
     :net_amount => :net_amount2, :tax_amount => :tax_amount2,
     :description => :description2, :uuid => :uuid2, :tax_point => :tax_point2,
     :tax_rate_id => :tax_rate_id2, :price_id => :price_id2,
-    :quantity => :quantity2, :creator_id => :creator_id2
+    :quantity => :quantity2, :creator_id => :creator_id2, :ledger_item => :ledger_item2
   }
   
   def description2
@@ -23,6 +23,7 @@ class SuperLineItem < Invoicing::LineItem::Base
   set_table_name 'line_item_records'
   include LineItemMethods
   acts_as_line_item RENAMED_METHODS
+  belongs_to :ledger_item2, :class_name => 'MyInvoice', :foreign_key => 'ledger_item_id2'
 end
 
 class SubLineItem < SuperLineItem
