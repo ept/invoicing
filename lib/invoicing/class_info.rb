@@ -175,6 +175,12 @@ module Invoicing
       def get(object, method_name)
         object.nil? ? nil : object.send(method(method_name))
       end
+
+      # Assigns +new_value+ to <tt>method_name=</tt> (renamed through options using +method+)
+      # on +object+. +method_name+ should not include the equals sign.
+      def set(object, method_name, new_value)
+        object.send("#{method(method_name)}=", new_value) unless object.nil?
+      end
     end
   end
 end
