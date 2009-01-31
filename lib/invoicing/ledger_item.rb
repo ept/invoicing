@@ -383,7 +383,7 @@ module Invoicing
     
     # Base class for all types of payment note in your application.
     # Please note that this class doesn't implement any particular means of payment (such as credit
-    # card handling) -- the purpose of this class is to record the fact that a payment has taken
+    # card handling) -- the purpose of this class is to record the fact that a payment has taken
     # place, not to deal with the actual mechanics of it. However, if you want to add support for
     # credit card handling and implement it in a subclass of +Payment+, you're more than welcome,
     # of course.
@@ -400,11 +400,11 @@ module Invoicing
         super
         @subtype = all_options[:subtype]
         
-        @uuid_generator = nil
         begin # try to load the UUID gem
           require 'uuid'
           @uuid_generator = UUID.new
-        rescue LoadError, NameError # silently ignore if gem not found
+        rescue LoadError, NameError # silently ignore if gem not found          
+          @uuid_generator = nil
         end
       end
     end

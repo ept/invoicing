@@ -28,7 +28,7 @@ module LedgerItemMethods
         {:name => 'I drink milk', :address => "Guzzle guzzle", :city => "Cheesetown",
          :postal_code => "12345", :country => "United States", :country_code => "US"}
       when 4
-        {:name => 'The taxman', :address => "ALL YOUR EARNINGS\nARE BELONG TO US",
+        {:name => 'The taxman', :address => "ALL YOUR EARNINGS\r\n\tARE BELONG TO US",
          :city => 'Cumbernauld', :state => 'North Lanarkshire', :postal_code => "",
          :country => 'United Kingdom'}
     end
@@ -88,6 +88,22 @@ class CorporationTaxLiability < Invoicing::LedgerItem::Base
   acts_as_ledger_item RENAMED_METHODS
 end
 
+class UUIDNotPresent < ActiveRecord::Base
+  set_primary_key 'id2'
+  set_table_name 'ledger_item_records'
+  include LedgerItemMethods
+  
+  def get_class_info
+    ledger_item_class_info
+  end
+end
+
+class OverwrittenMethodsNotPresent < Invoicing::LedgerItem::Invoice
+  set_primary_key 'id2'
+  set_table_name 'ledger_item_records'
+  acts_as_ledger_item LedgerItemMethods::RENAMED_METHODS
+end
+
 
 ####### The actual tests
 
@@ -115,14 +131,57 @@ class LedgerItemTest < Test::Unit::TestCase
   
   def test_invoice_from_self_is_debit
     record = MyInvoice.find(1)
+    assert_kind_of Invoicing::LedgerItem::Invoice, record
     assert record.debit?(1)
     assert record.debit?(nil)
   end
   
   def test_invoice_to_self_is_credit
     record = InvoiceSubtype.find(2)
+    assert_kind_of Invoicing::LedgerItem::Invoice, record
     assert !record.debit?(1)
     assert !record.debit?(nil)
+  end
+  
+  def test_invoice_to_customer_is_seen_as_credit_by_customer
+    assert !MyInvoice.find(1).debit?(2)
+  end
+  
+  def test_invoice_from_supplier_is_seen_as_debit_by_supplier
+    assert InvoiceSubtype.find(2).debit?(2)
+  end
+  
+  def test_credit_note_from_self_is_credit
+    record = MyCreditNote.find(3)
+    assert_kind_of Invoicing::LedgerItem::CreditNote, record
+    assert !record.debit?(nil)
+  end
+  
+  def test_credit_note_to_customer_is_seen_as_debit_by_customer
+    assert MyCreditNote.find(3).debit?(2)
+  end
+  
+  def test_payment_receipt_from_self_is_credit
+    record = MyPayment.find(4)
+    assert_kind_of Invoicing::LedgerItem::Payment, record
+    assert !record.debit?(1)
+    assert !record.debit?(nil)
+  end
+  
+  def test_payment_receipt_to_customer_is_seen_as_debit_by_customer
+    assert MyPayment.find(4).debit?(2)
+  end
+  
+  def test_cannot_determine_debit_status_for_uninvolved_party
+    assert_raise ArgumentError do
+      MyInvoice.find(1).debit?(3)
+    end
+  end
+  
+  def test_cannot_determine_debit_status_for_custom_ledger_item_type
+    assert_raise RuntimeError do
+      NotSubclassOfLedgerItem.find(5).debit?(2)
+    end
   end
   
   def test_assign_uuid_to_new_record
@@ -133,8 +192,34 @@ class LedgerItemTest < Test::Unit::TestCase
     rescue NameError
       uuid_gem_available = false
     end
-    assert record.uuid2.blank? unless uuid_gem_available
-    assert_match /^[0-9a-f]{8}\-[0-9a-f]{4}\-[0-9a-f]{4}\-[0-9a-f]{4}\-[0-9a-f]{12}$/, record.uuid2 if uuid_gem_available
+    if uuid_gem_available
+      assert_match /^[0-9a-f]{8}\-[0-9a-f]{4}\-[0-9a-f]{4}\-[0-9a-f]{4}\-[0-9a-f]{12}$/, record.uuid2
+    else
+      assert record.uuid2.blank?
+      puts "Warning: uuid gem not installed -- not testing UUID generation"
+    end
+  end
+  
+  def test_uuid_gem_not_present
+    begin
+      real_uuid = Object.send(:remove_const, :UUID)
+      UUIDNotPresent.acts_as_ledger_item(LedgerItemMethods::RENAMED_METHODS)
+      assert_nil UUIDNotPresent.new.get_class_info.uuid_generator
+    ensure
+      Object.send(:const_set, :UUID, real_uuid)
+    end
+  end
+  
+  def test_must_overwrite_sender_details
+    assert_raise RuntimeError do
+      OverwrittenMethodsNotPresent.new.sender_details
+    end
+  end
+  
+  def test_must_overwrite_recipient_details
+    assert_raise RuntimeError do
+      OverwrittenMethodsNotPresent.new.recipient_details
+    end
   end
   
 end
