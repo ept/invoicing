@@ -4,7 +4,7 @@ require File.join(File.dirname(__FILE__), 'test_helper.rb')
 
 module LedgerItemMethods
   RENAMED_METHODS = {
-    :id => :id2, :sender_id => :sender_id2, :recipient_id => :recipient_id2,
+    :id => :id2, :type => :type2, :sender_id => :sender_id2, :recipient_id => :recipient_id2,
     :sender_details => :sender_details2, :recipient_details => :recipient_details2,
     :identifier => :identifier2, :issue_date => :issue_date2, :currency => :currency2,
     :total_amount => :total_amount2, :tax_amount => :tax_amount2, :status => :status2,
@@ -44,7 +44,7 @@ module LedgerItemMethods
   end
   
   def description2
-    "#{type} #{id2}"
+    "#{type2} #{id2}"
   end
 end
 
@@ -53,6 +53,7 @@ end
 
 class MyInvoice < Invoicing::LedgerItem::Invoice
   set_primary_key 'id2'
+  set_inheritance_column 'type2'
   set_table_name 'ledger_item_records'
   include LedgerItemMethods
   acts_as_ledger_item RENAMED_METHODS
@@ -64,6 +65,7 @@ end
 
 class MyCreditNote < Invoicing::LedgerItem::CreditNote
   set_primary_key 'id2'
+  set_inheritance_column 'type2'
   set_table_name 'ledger_item_records'
   include LedgerItemMethods
   acts_as_ledger_item RENAMED_METHODS
@@ -71,6 +73,7 @@ end
 
 class MyPayment < Invoicing::LedgerItem::Payment
   set_primary_key 'id2'
+  set_inheritance_column 'type2'
   set_table_name 'ledger_item_records'
   include LedgerItemMethods
   acts_as_ledger_item RENAMED_METHODS
@@ -78,6 +81,7 @@ end
 
 class NotSubclassOfLedgerItem < ActiveRecord::Base
   set_primary_key 'id2'
+  set_inheritance_column 'type2'
   set_table_name 'ledger_item_records'
   include LedgerItemMethods
   acts_as_ledger_item RENAMED_METHODS
@@ -85,6 +89,7 @@ end
 
 class CorporationTaxLiability < Invoicing::LedgerItem::Base
   set_primary_key 'id2'
+  set_inheritance_column 'type2'
   set_table_name 'ledger_item_records'
   include LedgerItemMethods
   acts_as_ledger_item RENAMED_METHODS
@@ -92,6 +97,7 @@ end
 
 class UUIDNotPresent < ActiveRecord::Base
   set_primary_key 'id2'
+  set_inheritance_column 'type2'
   set_table_name 'ledger_item_records'
   include LedgerItemMethods
   
@@ -102,6 +108,7 @@ end
 
 class OverwrittenMethodsNotPresent < Invoicing::LedgerItem::Invoice
   set_primary_key 'id2'
+  set_inheritance_column 'type2'
   set_table_name 'ledger_item_records'
   acts_as_ledger_item LedgerItemMethods::RENAMED_METHODS
 end
@@ -180,12 +187,6 @@ class LedgerItemTest < Test::Unit::TestCase
     end
   end
   
-  def test_cannot_determine_debit_status_for_custom_ledger_item_type
-    assert_raise RuntimeError do
-      NotSubclassOfLedgerItem.find(5).debit?(2)
-    end
-  end
-  
   def test_assign_uuid_to_new_record
     record = MyInvoice.new
     begin
@@ -243,6 +244,10 @@ class LedgerItemTest < Test::Unit::TestCase
     assert_raise RuntimeError do
       MyInvoice.find(1).line_items # not line_items2
     end
+  end
+  
+  def test_account_summary
+    MyInvoice.account_summary(1, 2)
   end
   
 end

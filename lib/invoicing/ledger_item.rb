@@ -259,6 +259,8 @@ module Invoicing
         tax_amount   = ledger_item_class_info.method(:tax_amount)
         currency     = ledger_item_class_info.method(:currency)
         acts_as_currency_value(total_amount, tax_amount, :currency => currency)
+        
+        extend Invoicing::FindSubclasses
       end
       
       # This callback is invoked when ActMethods has been mixed into ActiveRecord::Base.
@@ -380,15 +382,55 @@ module Invoicing
       recipient_is_self = received_by?(self_id)
       raise ArgumentError, "self_id #{self_id.inspect} is neither sender nor recipient" unless sender_is_self || recipient_is_self
       raise ArgumentError, "self_id #{self_id.inspect} is both sender and recipient" if sender_is_self && recipient_is_self
+      self.class.debit_when_sent_by_self ? sender_is_self : recipient_is_self
+    end
+    
+    
+    module ClassMethods
+      # Returns +true+ if this type of ledger item should be recorded as a debit when the party
+      # viewing the account is the sender of the document, and recorded as a credit when
+      # the party viewing the account is the recipient. Returns +false+ if those roles are
+      # reversed. This method implements default behaviour for invoices, credit notes and
+      # payments (see <tt>Invoicing::LedgerItem#debit?</tt>); if you define custom ledger item
+      # types, you should override it accordingly in subclasses.
+      def debit_when_sent_by_self
+        case ledger_item_class_info.subtype
+          when :invoice     then true
+          when :credit_note then false
+          when :payment     then false
+          else nil
+        end
+      end
       
-      case ledger_item_class_info.subtype
-        when :invoice then sender_is_self
-        when :credit_note then recipient_is_self
-        when :payment then recipient_is_self
-        else raise RuntimeError, "Ledger item subtype #{ledger_item_class_info.subtype.inspect} not recognised. Please give a " +
-                                 "valid :subtype => ... argument to acts_as_ledger_item, or override the debit? method."
+      # Returns a summary of the customer or supplier account between two parties identified
+      # by +self_id+ (the party from whose perspective the account is seen, 'you') and +other_id+
+      # ('them', your supplier/customer). The return value is a hash with the following keys:
+      # <tt>:debit</tt>::   The sum of all debits (inc. tax) on the account; on a customer account this
+      #                     is the sum of all invoices, while on a supplier account this is the sum of all
+      #                     credit notes and payments.
+      # <tt>:credit</tt>::  The sum of all credits (inc. tax) on the account; on a customer account this
+      #                     is the sum of all credit notes and payments, while on a supplier account this
+      #                     is the sum of all invoices.
+      # <tt>:balance</tt>:: Any outstanding money owed on the account (calculated as +debit+ minus +credit+):
+      #                     positive if they owe you money, and negative if you owe them money.
+      def account_summary(self_id, other_id)
+        info = ledger_item_class_info
+        debit_when_sent     = Base.select_matching_subclasses(:debit_when_sent_by_self, true,  self.table_name, self.inheritance_column).map{|c| c.name}
+        debit_when_received = Base.select_matching_subclasses(:debit_when_sent_by_self, false, self.table_name, self.inheritance_column).map{|c| c.name}
+        debit_when_sent     = merge_conditions({info.method(:sender_id)    => self_id, info.method(:type) => debit_when_sent})
+        debit_when_received = merge_conditions({info.method(:recipient_id) => self_id, info.method(:type) => debit_when_received})
+        debit_condition = "#{debit_when_sent} OR #{debit_when_received}"
+        amount_column = info.method(:total_amount)
+        filter_condition = merge_conditions({info.method(:status) => ['closed', 'cleared'],
+          info.method(:sender_id)    => [self_id, other_id],
+          info.method(:recipient_id) => [self_id, other_id]})
+        query = "SELECT SUM(IF(#{debit_condition}, #{amount_column}, 0)) AS debit, " +
+                       "SUM(IF(#{debit_condition}, 0, #{amount_column})) AS credit " +
+                "FROM #{quoted_table_name} WHERE #{filter_condition}"
+        puts query
       end
     end
+    
     
     # Usually there is no need to derive classes directly from <tt>Invoicing::LedgerItem::Base</tt>.
     # Use <tt>Invoicing::LedgerItem::Invoice</tt>, <tt>Invoicing::LedgerItem::CreditNote</tt>
@@ -409,11 +451,21 @@ module Invoicing
     # Base class for all types of invoice in your application.
     class Invoice < Base
       # acts_as_ledger_item is called in ActMethods.extended
+
+      # See <tt>Invoicing::LedgerItem#debit?</tt> and <tt>Invoicing::LedgerItem::ClassMethods#debit_when_sent_by_self</tt>
+      def self.debit_when_sent_by_self
+        true
+      end
     end
     
     # Base class for all types of credit note in your application.
     class CreditNote < Base
       # acts_as_ledger_item is called in ActMethods.extended
+
+      # See <tt>Invoicing::LedgerItem#debit?</tt> and <tt>Invoicing::LedgerItem::ClassMethods#debit_when_sent_by_self</tt>
+      def self.debit_when_sent_by_self
+        false
+      end
     end
     
     # Base class for all types of payment note in your application.
@@ -424,6 +476,11 @@ module Invoicing
     # of course.
     class Payment < Base
       # acts_as_ledger_item is called in ActMethods.extended
+
+      # See <tt>Invoicing::LedgerItem#debit?</tt> and <tt>Invoicing::LedgerItem::ClassMethods#debit_when_sent_by_self</tt>
+      def self.debit_when_sent_by_self
+        false
+      end
     end
 
 
