@@ -129,8 +129,8 @@ module Invoicing
     # Returns a list of those classes within +known_subclasses+ which match a condition
     # <tt>method_name => value</tt>. May raise +NoMethodError+ if a class object does not
     # respond to +method_name+. 
-    def select_matching_subclasses(method_name, value)
-      known_subclasses.select do |cls|
+    def select_matching_subclasses(method_name, value, table = table_name, type_column = inheritance_column)
+      known_subclasses(table, type_column).select do |cls|
         returned = cls.send(method_name)
         (returned == value) or case value
           when true         then !!returned
@@ -156,13 +156,13 @@ module Invoicing
     
     # Return the list of all known subclasses of this class, if necessary checking the database for
     # classes which have not yet been loaded.
-    def known_subclasses
-      load_all_subclasses_found_in_database
+    def known_subclasses(table = table_name, type_column = inheritance_column)
+      load_all_subclasses_found_in_database(table, type_column)
       @known_subclasses ||= [self]
     end
     
   private
-    # Query the database for all qualified class names found in the +inheritance_column+ column
+    # Query the database for all qualified class names found in the +type_column+ column
     # (called +type+ by default), and check that classes of that name have been loaded by the Ruby
     # interpreter. If a type name is encountered which cannot be loaded,
     # <tt>ActiveRecord::SubclassNotFound</tt> is raised.
@@ -171,17 +171,18 @@ module Invoicing
     # obvious though how to do this best -- a different Ruby instance may insert a row into the
     # database with a type which is not yet loaded in this interpreter. Maybe reloading the list
     # of types from the database every 30-60 seconds or so would be a compromise?
-    def load_all_subclasses_found_in_database
-      quoted_inheritance_column = connection.quote_column_name(inheritance_column)
+    def load_all_subclasses_found_in_database(table = table_name, type_column = inheritance_column)
+      quoted_table_name = connection.quote_table_name(table)
+      quoted_inheritance_column = connection.quote_column_name(type_column)
       query = "SELECT DISTINCT #{quoted_inheritance_column} FROM #{quoted_table_name}"
-      for subclass_name in connection.select_all(query).map{|record| record[inheritance_column]}
+      for subclass_name in connection.select_all(query).map{|record| record[type_column]}
         unless subclass_name.blank? # empty string or nil means base class
           begin
             compute_type(subclass_name)
           rescue NameError
             raise ActiveRecord::SubclassNotFound, # Error message borrowed from ActiveRecord::Base
               "The single-table inheritance mechanism failed to locate the subclass: '#{subclass_name}'. " +
-              "This error is raised because the column '#{inheritance_column}' is reserved for storing the class in case of inheritance. " +
+              "This error is raised because the column '#{type_column}' is reserved for storing the class in case of inheritance. " +
               "Please rename this column if you didn't intend it to be used for storing the inheritance class " +
               "or overwrite #{self.to_s}.inheritance_column to use another column for that information."
           end
