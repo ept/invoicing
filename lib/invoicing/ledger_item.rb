@@ -404,30 +404,110 @@ module Invoicing
       
       # Returns a summary of the customer or supplier account between two parties identified
       # by +self_id+ (the party from whose perspective the account is seen, 'you') and +other_id+
-      # ('them', your supplier/customer). The return value is a hash with the following keys:
-      # <tt>:debit</tt>::   The sum of all debits (inc. tax) on the account; on a customer account this
-      #                     is the sum of all invoices, while on a supplier account this is the sum of all
-      #                     credit notes and payments.
-      # <tt>:credit</tt>::  The sum of all credits (inc. tax) on the account; on a customer account this
-      #                     is the sum of all credit notes and payments, while on a supplier account this
-      #                     is the sum of all invoices.
-      # <tt>:balance</tt>:: Any outstanding money owed on the account (calculated as +debit+ minus +credit+):
-      #                     positive if they owe you money, and negative if you owe them money.
+      # ('them', your supplier/customer). The return value is a hash with the following structure:
+      #
+      #   { :GBP => {                                 # ISO 4217 currency code for the following figures
+      #       :sales             => BigDecimal(...),  # Sum of sales (invoices sent by self_id)
+      #       :purchases         => BigDecimal(...),  # Sum of purchases (invoices received by self_id)
+      #       :sale_receipts     => BigDecimal(...),  # Sum of payments received from customer
+      #       :purchase_payments => BigDecimal(...),  # Sum of payments made to supplier
+      #       :balance           => BigDecimal(...)   # sales - purchases - sale_receipts + purchase_payments
+      #     },
+      #     :USD => {                                 # Another block as above, if the account uses
+      #       ...                                     # multiple currencies
+      #   }}
+      #
+      # The <tt>:balance</tt> fields indicate any outstanding money owed on the account: the value is
+      # positive if they owe you money, and negative if you owe them money.
       def account_summary(self_id, other_id)
         info = ledger_item_class_info
-        debit_when_sent     = Base.select_matching_subclasses(:debit_when_sent_by_self, true,  self.table_name, self.inheritance_column).map{|c| c.name}
-        debit_when_received = Base.select_matching_subclasses(:debit_when_sent_by_self, false, self.table_name, self.inheritance_column).map{|c| c.name}
-        debit_when_sent     = merge_conditions({info.method(:sender_id)    => self_id, info.method(:type) => debit_when_sent})
-        debit_when_received = merge_conditions({info.method(:recipient_id) => self_id, info.method(:type) => debit_when_received})
-        debit_condition = "#{debit_when_sent} OR #{debit_when_received}"
-        amount_column = info.method(:total_amount)
-        filter_condition = merge_conditions({info.method(:status) => ['closed', 'cleared'],
-          info.method(:sender_id)    => [self_id, other_id],
-          info.method(:recipient_id) => [self_id, other_id]})
-        query = "SELECT SUM(IF(#{debit_condition}, #{amount_column}, 0)) AS debit, " +
-                       "SUM(IF(#{debit_condition}, 0, #{amount_column})) AS credit " +
-                "FROM #{quoted_table_name} WHERE #{filter_condition}"
-        puts query
+        conditions = {info.method(:sender_id)    => [self_id, other_id],
+                      info.method(:recipient_id) => [self_id, other_id]}
+
+        with_scope :find => {:conditions => conditions} do
+          summaries = account_summaries(self_id)
+          summaries[other_id] || {}
+        end
+      end
+    
+      # Returns a summary account status for all customers or suppliers with which a particular party
+      # has dealings. Takes into account all +closed+ invoices/credit notes and all +cleared+ payments
+      # which have +self_id+ as their +sender_id+ or +recipient_id+. Returns a hash whose keys are the
+      # other party of each account (i.e. the value of +sender_id+ or +recipient_id+ which is not
+      # +self_id+, as an integer), and whose values are again hashes, of the same form as returned by
+      # +account_summary+:
+      #
+      #   LedgerItem.account_summaries(1)
+      #     # => { 2 => { :USD => { :sales => ... }, :EUR => { :sales => ... } },
+      #     #      3 => { :EUR => { :sales => ... } } }
+      #
+      # If you want to further restrict the ledger items taken into account in this calculation (e.g.
+      # include only data from a particular quarter) you can call this method within an ActiveRecord
+      # scope:
+      #
+      #   q3_2008 = ['issue_date >= ? AND issue_date < ?', DateTime.parse('2008-07-01'), DateTime.parse('2008-10-01')]
+      #   LedgerItem.scoped(:conditions => q3_2008).account_summaries(1)
+      #
+      def account_summaries(self_id)
+        info = ledger_item_class_info
+        scope = scope(:find)
+        
+        debit_classes  = Base.select_matching_subclasses(:debit_when_sent_by_self, true,  self.table_name, self.inheritance_column).map{|c| c.name}
+        credit_classes = Base.select_matching_subclasses(:debit_when_sent_by_self, false, self.table_name, self.inheritance_column).map{|c| c.name}
+        debit_when_sent      = merge_conditions({info.method(:sender_id)    => self_id, info.method(:type) => debit_classes})
+        debit_when_received  = merge_conditions({info.method(:recipient_id) => self_id, info.method(:type) => credit_classes})
+        credit_when_sent     = merge_conditions({info.method(:sender_id)    => self_id, info.method(:type) => credit_classes})
+        credit_when_received = merge_conditions({info.method(:recipient_id) => self_id, info.method(:type) => debit_classes})
+
+        cols = {}
+        [:total_amount, :sender_id, :recipient_id, :status, :currency].each do |col|
+          cols[col] = connection.quote_column_name(info.method(col))
+        end
+        
+        sender_is_self    = merge_conditions({info.method(:sender_id)    => self_id})
+        recipient_is_self = merge_conditions({info.method(:recipient_id) => self_id})
+        other_id_column = "IF(#{sender_is_self}, #{cols[:recipient_id]}, #{cols[:sender_id]})"
+        filter_conditions = "#{cols[:status]} IN ('closed','cleared') AND (#{sender_is_self} OR #{recipient_is_self})"
+        
+        # Structure borrowed from ActiveRecord::Base.construct_finder_sql
+
+        sql = "SELECT #{other_id_column} AS other_id, #{cols[:currency]} AS currency, " + 
+          "SUM(IF(#{debit_when_sent     }, #{cols[:total_amount]}, 0)) AS sales, " +
+          "SUM(IF(#{debit_when_received }, #{cols[:total_amount]}, 0)) AS purchase_payments, " +
+          "SUM(IF(#{credit_when_sent    }, #{cols[:total_amount]}, 0)) AS sale_receipts, " +
+          "SUM(IF(#{credit_when_received}, #{cols[:total_amount]}, 0)) AS purchases " +
+          "FROM #{(scope && scope[:from]) || quoted_table_name} "
+        
+        add_joins!(sql, nil, scope)
+        add_conditions!(sql, filter_conditions, scope)
+        
+        sql << " GROUP BY other_id, currency"
+
+        add_order!(sql, nil, scope)
+        add_limit!(sql, {}, scope)
+        add_lock!(sql, {}, scope)
+        
+        puts "\n\n#{sql}\n\n"
+        rows = connection.select_all(sql)
+
+        results = {}
+        rows.each do |row|
+          row.symbolize_keys!
+          other_id = row[:other_id].to_i
+          currency = row[:currency].to_sym
+          summary = {:balance => BigDecimal('0')}
+          
+          {:sales => 1, :purchases => -1, :sale_receipts => -1, :purchase_payments => 1}.each_pair do |field, factor|
+            summary[field] = BigDecimal(row[field])
+            summary[:balance] += BigDecimal(factor.to_s) * summary[field]
+            puts "self_id #{self_id}, other_id=#{row[:other_id]}: #{field} = #{summary[field]}"
+          end
+          
+          results[other_id] ||= {}
+          results[other_id][currency] = summary
+        end
+        
+        results
       end
     end
     
