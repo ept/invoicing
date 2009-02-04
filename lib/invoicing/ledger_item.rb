@@ -528,7 +528,6 @@ module Invoicing
         add_limit!(sql, {}, scope)
         add_lock!(sql, {}, scope)
         
-        puts "\n\n#{sql}\n\n"
         rows = connection.select_all(sql)
 
         results = {}
@@ -541,7 +540,6 @@ module Invoicing
           {:sales => 1, :purchases => -1, :sale_receipts => -1, :purchase_payments => 1}.each_pair do |field, factor|
             summary[field] = BigDecimal(row[field])
             summary[:balance] += BigDecimal(factor.to_s) * summary[field]
-            puts "self_id #{self_id}, other_id=#{row[:other_id]}: #{field} = #{summary[field]}"
           end
           
           results[other_id] ||= {}

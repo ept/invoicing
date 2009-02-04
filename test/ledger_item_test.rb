@@ -236,16 +236,16 @@ class LedgerItemTest < Test::Unit::TestCase
   def test_account_summary
     summary = {:GBP => {:sales => BigDecimal('257.50'), :purchases => BigDecimal('141.97'),
       :sale_receipts => BigDecimal('256.50'), :purchase_payments => BigDecimal('0.00'),
-      :balance => BigDecimal('140.97')}}
-    assert_equal summary, MyInvoice.account_summary(1, 2)
+      :balance => BigDecimal('-140.97')}}
+    assert_equal summary, MyLedgerItem.account_summary(1, 2)
   end
   
   def test_account_summary_with_scope
     summary = {:GBP => {:sales => BigDecimal('257.50'), :purchases => BigDecimal('0.00'),
       :sale_receipts => BigDecimal('256.50'), :purchase_payments => BigDecimal('0.00'),
-      :balance => BigDecimal('-1.00')}}
+      :balance => BigDecimal('1.00')}}
     conditions = ['issue_date2 >= ? AND issue_date2 < ?', DateTime.parse('2008-01-01'), DateTime.parse('2009-01-01')]
-    assert_equal summary, MyInvoice.scoped(:conditions => conditions).account_summary(1, 2)
+    assert_equal summary, MyLedgerItem.scoped(:conditions => conditions).account_summary(1, 2)
   end
   
 end
