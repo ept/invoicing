@@ -51,7 +51,7 @@ end
 
 ####### Classes for use in the tests
 
-class MyInvoice < Invoicing::LedgerItem::Invoice
+class MyLedgerItem < ActiveRecord::Base
   set_primary_key 'id2'
   set_inheritance_column 'type2'
   set_table_name 'ledger_item_records'
@@ -60,39 +60,25 @@ class MyInvoice < Invoicing::LedgerItem::Invoice
   has_many :line_items2, :class_name => 'SuperLineItem', :foreign_key => 'ledger_item_id2'
 end
 
+class MyInvoice < MyLedgerItem
+  acts_as_ledger_item :subtype => :invoice
+end
+
 class InvoiceSubtype < MyInvoice
 end
 
-class MyCreditNote < Invoicing::LedgerItem::CreditNote
-  set_primary_key 'id2'
-  set_inheritance_column 'type2'
-  set_table_name 'ledger_item_records'
-  include LedgerItemMethods
-  acts_as_ledger_item RENAMED_METHODS
+class MyCreditNote < MyLedgerItem
+  acts_as_ledger_item :subtype => :credit_note
 end
 
-class MyPayment < Invoicing::LedgerItem::Payment
-  set_primary_key 'id2'
-  set_inheritance_column 'type2'
-  set_table_name 'ledger_item_records'
-  include LedgerItemMethods
-  acts_as_ledger_item RENAMED_METHODS
+class MyPayment < MyLedgerItem
+  acts_as_ledger_item :subtype => :payment
 end
 
-class NotSubclassOfLedgerItem < ActiveRecord::Base
-  set_primary_key 'id2'
-  set_inheritance_column 'type2'
-  set_table_name 'ledger_item_records'
-  include LedgerItemMethods
-  acts_as_ledger_item RENAMED_METHODS
-end
-
-class CorporationTaxLiability < Invoicing::LedgerItem::Base
-  set_primary_key 'id2'
-  set_inheritance_column 'type2'
-  set_table_name 'ledger_item_records'
-  include LedgerItemMethods
-  acts_as_ledger_item RENAMED_METHODS
+class CorporationTaxLiability < MyLedgerItem
+  def self.debit_when_sent_by_self
+    true
+  end
 end
 
 class UUIDNotPresent < ActiveRecord::Base
@@ -106,11 +92,11 @@ class UUIDNotPresent < ActiveRecord::Base
   end
 end
 
-class OverwrittenMethodsNotPresent < Invoicing::LedgerItem::Invoice
+class OverwrittenMethodsNotPresent < ActiveRecord::Base
   set_primary_key 'id2'
   set_inheritance_column 'type2'
   set_table_name 'ledger_item_records'
-  acts_as_ledger_item LedgerItemMethods::RENAMED_METHODS
+  acts_as_ledger_item LedgerItemMethods::RENAMED_METHODS.clone.update({:subtype => :invoice})
 end
 
 
@@ -119,7 +105,7 @@ end
 class LedgerItemTest < Test::Unit::TestCase
   
   def test_total_amount_is_currency_value
-    record = NotSubclassOfLedgerItem.find(5)
+    record = MyLedgerItem.find(5)
     assert_equal '$432.10', record.total_amount2_formatted
   end
   
@@ -140,14 +126,14 @@ class LedgerItemTest < Test::Unit::TestCase
   
   def test_invoice_from_self_is_debit
     record = MyInvoice.find(1)
-    assert_kind_of Invoicing::LedgerItem::Invoice, record
+    assert_kind_of MyInvoice, record
     assert record.debit?(1)
     assert record.debit?(nil)
   end
   
   def test_invoice_to_self_is_credit
     record = InvoiceSubtype.find(2)
-    assert_kind_of Invoicing::LedgerItem::Invoice, record
+    assert_kind_of MyInvoice, record
     assert !record.debit?(1)
     assert !record.debit?(nil)
   end
@@ -160,19 +146,20 @@ class LedgerItemTest < Test::Unit::TestCase
     assert InvoiceSubtype.find(2).debit?(2)
   end
   
-  def test_credit_note_from_self_is_credit
+  def test_credit_note_from_self_is_debit
     record = MyCreditNote.find(3)
-    assert_kind_of Invoicing::LedgerItem::CreditNote, record
-    assert !record.debit?(nil)
+    assert_kind_of MyCreditNote, record
+    assert record.debit?(nil)
+    assert record.debit?(1)
   end
   
-  def test_credit_note_to_customer_is_seen_as_debit_by_customer
-    assert MyCreditNote.find(3).debit?(2)
+  def test_credit_note_to_customer_is_seen_as_credit_by_customer
+    assert !MyCreditNote.find(3).debit?(2)
   end
   
   def test_payment_receipt_from_self_is_credit
     record = MyPayment.find(4)
-    assert_kind_of Invoicing::LedgerItem::Payment, record
+    assert_kind_of MyPayment, record
     assert !record.debit?(1)
     assert !record.debit?(nil)
   end
@@ -236,8 +223,8 @@ class LedgerItemTest < Test::Unit::TestCase
     invoice.line_items2 << SuperLineItem.new(:net_amount2 => 100, :tax_amount2 => 15)
     invoice.line_items2 << SubLineItem.new(:net_amount2 => 10)
     invoice.valid?
-    assert_equal BigDecimal('125'), invoice.total_amount
-    assert_equal BigDecimal('15'), invoice.tax_amount
+    assert_equal BigDecimal('125'), invoice.total_amount2
+    assert_equal BigDecimal('15'), invoice.tax_amount2
   end
   
   def test_line_items_error

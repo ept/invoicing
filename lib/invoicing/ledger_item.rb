@@ -13,15 +13,18 @@ module Invoicing
   #   if you owe someone else money -- for example, if you need to pay commissions to a reseller of
   #   your application.
   # +CreditNote+::
-  #   This is basically a negative invoice; you should use it if you have previously
+  #   This is basically a invoice for a negative amount; you should use it if you have previously
   #   sent a customer an invoice with an amount which was too great (i.e. you have overcharged them).
-  #   Note that the numeric value on a credit note is positive; this value is subtracted from the
-  #   amount which the recipient owes to the sender. For example, if you send a customer an invoice
-  #   with a +total_amount+ of $20 and a credit note with a +total_amount+ of $10 (not -$10!), that
-  #   means that you're asking them to pay $10.
+  #   The numeric values stored in the database for a credit note are negative, to make it easier to
+  #   calculate account summaries, but they may be formatted as positive values when presented to
+  #   users if that is customary in your country. For example, if you send a customer an invoice
+  #   with a +total_amount+ of $20 and a credit note with a +total_amount+ of -$10, that means that
+  #   overall you're asking them to pay $10.
   # +Payment+::
-  #   This is a record of the fact that a payment has been made. It's a simple object,
-  #   in effect just saying that party A paid amount X to party B on date Y.
+  #   This is a record of the fact that a payment has been made. It's a simple object, in effect just
+  #   saying that party A paid amount X to party B on date Y. This module does not implement any
+  #   particular payment mechanism such as credit card handling, although it could be implemented on
+  #   top of a +Payment+ object.
   #
   # == Important principles
   #
@@ -61,9 +64,11 @@ module Invoicing
   #   customer a special discount), don't amend the invoice, but send them a credit note to waive
   #   your claim to the difference.
   # * If you create a payment, mark it as +pending+ until it the money has actually arrived.
-  #   If it never arrives, mark the payment as +failed+.
+  #   If it never arrives, keep the record but mark it as +failed+ in case you need to investigate
+  #   it later.
   #
-  # The exception are invoices on which you accumulate charges (e.g. over the course of a month)
+  # The exception to the 'no modifications' rule are invoices on which you accumulate charges
+  # (e.g. over the course of a month)
   # and then officially 'send' the invoice at the end of the period. In this gem we call such
   # invoices +open+ while they may still be changed. It's ok to add charges to +open+ invoices
   # as you go along; while it is +open+ it is not legally an invoice, but only a statement
@@ -72,32 +77,55 @@ module Invoicing
   # statement become an invoice for legal purposes. Once it's +closed+ you must not add
   # any further charges to it.
   #
-  # Finally, please only use positive numeric values on invoices, credit notes and payments (unless
-  # you have specifically been given other instructions by your accountant). Use the +sender_id+
-  # and +recipient_id+ fields to indicate the direction of a transaction (see below).
+  # Finally, each ledger item has a sender and a recipient; typically one of the two will be
+  # <b>you</b> (the person/organsation who owns/operates the application):
+  # * For invoices, credit notes and payments between you and your customers, set the sender
+  #   to be yourself and the recipient to be your customer;
+  # * If you use this system to record suppliers, set the sender to be your supplier and the
+  #   recipient to be yourself.
+  # (See below for details.) It is perfectly ok to have documents which are sent between your
+  # users, where you are neither sender nor recipient; this may be useful if you want to allow
+  # users to trade directly with each other.
   #
   # == Using invoices, credit notes and payments in your application
   #
   # All invoices, credit notes and payments (collectively called 'ledger items') are stored in a
-  # single database table. We use <b>single table inheritance</b> to distinguish the object types:
-  # this module provides a base class type <tt>Invoicing::LedgerItem::Base < ActiveRecord::Base</tt>
-  # and three subclasses:
-  # <tt>Invoicing::LedgerItem::Invoice</tt>::    base class for all types of invoice
-  # <tt>Invoicing::LedgerItem::CreditNote</tt>:: base class for all types of credit note
-  # <tt>Invoicing::LedgerItem::Payment</tt>::    base class for all types of payment
+  # single database table. We use <b>single table inheritance</b> to distinguish the object types.
+  # You need to create at least the following four model classes in your application:
   #
-  # You can create as many subclasses as you like of each of these three types. This provides a
-  # convenient mechanism for encapsulating different types of functionality which you may need for
-  # different types of transactions, but still keeping the accounts in one place. You may start
-  # with only one type of invoice (e.g. <tt>class MonthlyChargesInvoice < Invoicing::LedgerItem::Invoice</tt>
+  #   class LedgerItem < ActiveRecord::Base
+  #     acts_as_ledger_item
+  #   end
+  #
+  #   class Invoice < LedgerItem                      # Base class for all types of invoice
+  #     acts_as_ledger_item :subtype => :invoice
+  #   end
+  #
+  #   class CreditNote < LedgerItem                   # Base class for all types of credit note
+  #     acts_as_ledger_item :subtype => :credit_note
+  #   end
+  #
+  #   class Payment < LedgerItem                      # Base class for all types of payment
+  #     acts_as_ledger_item :subtype => :payment
+  #   end
+  #
+  # You may give the classes different names than these, and you can package them in modules if
+  # you wish, but they need to have the <tt>:subtype => ...</tt> option parameters as above.
+  #
+  # You can create as many subclasses as you like of each of Invoice, CreditNote and Payment. This
+  # provides a convenient mechanism for encapsulating different types of functionality which you
+  # may need for different types of transactions, but still keeping the accounts in one place. You
+  # may start with only one subclass of +Invoice+ (e.g. <tt>class MonthlyChargesInvoice < Invoice</tt>
   # to bill users for their use of your application; but as you want to do more clever things, you
   # can add other subclasses of +Invoice+ as and when you need them (such as +ConsultancyServicesInvoice+
-  # and +SalesCommissionInvoice+, for example). Similarly for payments, you may have subclasses representing
-  # credit card payments, cash payments, bank transfers etc.
+  # and +SalesCommissionInvoice+, for example). Similarly for payments, you may have subclasses
+  # representing credit card payments, cash payments, bank transfers etc.
   #
-  # You must create at least one subclass of each of +Invoice+, +CreditNote+ and +Payment+ and assign
-  # them the same ActiveRecord table name (using <tt>ActiveRecord::Base.set_table_name</tt>). That
-  # database table must have a certain minimum set of columns and a few common methods, documented
+  # Please note that the +Payment+ ledger item type does not itself implement any particular
+  # payment methods such as credit card handling; however, for third-party libraries providing
+  # credit card handling, this would be a good place to integrate.
+  #
+  # The model classes must have a certain minimum set of columns and a few common methods, documented
   # below (although you may rename any of them if you wish). Beyond those, you may add other methods and
   # database columns for your application's own needs, provided they don't interfere with names used here.
   #
@@ -187,6 +215,7 @@ module Invoicing
   #   +open+::      For invoices/credit notes: the document is not yet finalised, further line items may be added.
   #   +closed+::    For invoices/credit notes: the document has been sent to the recipient and will not be changed again.
   #   +cancelled+:: For invoices/credit notes: the document has been declared void and does not count towards accounts.
+  #                 (Use this sparingly; if you want to refund an invoice that has been sent, send a credit note.)
   #   +pending+::   For payments: payment is expected or has been sent, but has not yet been confirmed as received.
   #   +cleared+::   For payments: payment has completed successfully.
   #   +failed+::    For payments: payment did not succeed; this record is not counted towards accounts.
@@ -196,7 +225,7 @@ module Invoicing
   #   Can be a database column but doesn't have to be.
   #
   # +line_items+::
-  #   You should define an association <tt>has_many :line_items, ...</tt> referring to the +LineItem+ object
+  #   You should define an association <tt>has_many :line_items, ...</tt> referring to the +LineItem+ objects
   #   associated with this ledger item.
   #
   #
@@ -231,25 +260,26 @@ module Invoicing
   #
   # In return for providing +LedgerItem+ with all the required information as documented above, you are given
   # a number of class and instance methods which you will find useful sooner or later. In addition to those
-  # documented in this module, the following methods are generated dynamically:
+  # documented in this module (instance methods) and <tt>Invoicing::LedgerItem::ClassMethods</tt>
+  # (class methods), the following methods are generated dynamically:
   #
   # * FIXME describe dynamically generated methods
   module LedgerItem
     
     module ActMethods
       # Declares that the current class is a model for ledger items (i.e. invoices, credit notes and
-      # payment notes). It is recommended that instead of using +acts_as_ledger_item+, you make your
-      # invoice, credit note and payment classes subclasses of <tt>Invoicing::LedgerItem::Invoice</tt>,
-      # <tt>Invoicing::LedgerItem::CreditNote</tt> and <tt>Invoicing::LedgerItem::Payment</tt> instead.
-      # Use +acts_as_ledger_item+ only if you cannot change your existing class hierarchy (which may be
-      # the case if you are retrofitting this invoicing framework to your existing application), or if
-      # you have multiple disjoint hierarchies of ledger items in different tables (although I can't
-      # imagine why anybody would want to do that).
+      # payment notes).
       #
       # This method accepts a hash of options, all of which are optional:
       # <tt>:subtype</tt>:: One of <tt>:invoice</tt>, <tt>:credit_note</tt> or <tt>:payment</tt>.
+      #
       # Also, the name of any +LedgerItem+ subclass method (as documented on the +LedgerItem+ module)
-      # may be used, mapping it to the name which is actually used by the classes, to allow renaming.
+      # may be used as an option, with the value being the name under which that particular method
+      # or attribute can be found. This allows you to use names other than the defaults.
+      # For example:
+      #   acts_as_ledger_item :total_amount => :gross_amount
+      # if your database column storing the invoice value is called +gross_amount+ instead of
+      # +total_amount+.
       def acts_as_ledger_item(*args)
         Invoicing::ClassInfo.acts_as(Invoicing::LedgerItem, self, args)
         before_validation :calculate_total_amount
@@ -262,16 +292,19 @@ module Invoicing
         
         extend Invoicing::FindSubclasses
       end
-      
-      # This callback is invoked when ActMethods has been mixed into ActiveRecord::Base.
-      def self.extended(other) #:nodoc:
-        Invoicing::LedgerItem::Base.acts_as_ledger_item
-        Invoicing::LedgerItem::Invoice.acts_as_ledger_item    :subtype => :invoice
-        Invoicing::LedgerItem::CreditNote.acts_as_ledger_item :subtype => :credit_note
-        Invoicing::LedgerItem::Payment.acts_as_ledger_item    :subtype => :payment
-      end
     end
     
+    # Overrides the default constructor of <tt>ActiveRecord::Base</tt> when +acts_as_ledger_item+
+    # is called. If the +uuid+ gem is installed, this constructor creates a new UUID and assigns
+    # it to the +uuid+ property when a new ledger item model object is created.
+    def initialize(*args)
+      super
+      # Initialise uuid attribute if possible
+      info = ledger_item_class_info
+      if self.has_attribute?(info.method(:uuid)) && info.uuid_generator
+        write_attribute(info.method(:uuid), info.uuid_generator.generate)
+      end
+    end
     
     # Calculate sum of net_amount and tax_amount across all line items, and assign it to total_amount;
     # calculate sum of tax_amount across all line items, and assign it to tax_amount.
@@ -292,8 +325,8 @@ module Invoicing
         tax_total += tax_amount unless tax_amount.nil?
       end
       
-      self.total_amount = net_total + tax_total
-      self.tax_amount = tax_total
+      ledger_item_class_info.set(self, :total_amount, net_total + tax_total)
+      ledger_item_class_info.set(self, :tax_amount,   tax_total)
     end
     
     # We don't actually implement anything using +method_missing+ at the moment, but use it to
@@ -371,12 +404,19 @@ module Invoicing
     #
     # It takes an argument +self_id+, which should be equal to either +sender_id+ or +recipient_id+ of this
     # object, and which determines from which perspective the account is viewed. The default behaviour is:
-    # * A sent invoice (<tt>self_id == sender_id</tt>) is a debit since it increases the recipient's liability;
-    #   a sent credit note or a sent payment receipt is a credit because it decreases the recipient's
+    # * A sent invoice (<tt>self_id == sender_id</tt>) is a debit since it increases the recipient's
+    #   liability; a sent credit note decreases the recipient's liability with a negative-valued
+    #   debit; a sent payment receipt is a positive-valued credit and thus decreases the recipient's
     #   liability.
     # * A received invoice (<tt>self_id == recipient_id</tt>) is a credit because it increases your own
-    #   liability; a received credit note or a received payment receipt is a debit because it decreases
-    #   your own liability.
+    #   liability; a received credit note decreases your own liability with a negative-valued credit;
+    #   a received payment receipt is a positive-valued debit and thus decreases your own liability.
+    #
+    # Note that accounting practices differ with regard to credit notes: some think that a sent
+    # credit note should be recorded as a positive credit (hence the name 'credit note'); others
+    # prefer to use a negative debit. We chose the latter because it allows you to calculate the
+    # total sale volume on an account simply by adding up all the debits. If there is enough demand
+    # for the positive-credit model, we may add support for it sometime in future.
     def debit?(self_id)
       sender_is_self = sent_by?(self_id)
       recipient_is_self = received_by?(self_id)
@@ -392,11 +432,12 @@ module Invoicing
       # the party viewing the account is the recipient. Returns +false+ if those roles are
       # reversed. This method implements default behaviour for invoices, credit notes and
       # payments (see <tt>Invoicing::LedgerItem#debit?</tt>); if you define custom ledger item
-      # types, you should override it accordingly in subclasses.
+      # subtypes (other than +invoice+, +credit_note+ and +payment+), you should override this
+      # method accordingly in those subclasses.
       def debit_when_sent_by_self
         case ledger_item_class_info.subtype
           when :invoice     then true
-          when :credit_note then false
+          when :credit_note then true
           when :payment     then false
           else nil
         end
@@ -452,8 +493,8 @@ module Invoicing
         info = ledger_item_class_info
         scope = scope(:find)
         
-        debit_classes  = Base.select_matching_subclasses(:debit_when_sent_by_self, true,  self.table_name, self.inheritance_column).map{|c| c.name}
-        credit_classes = Base.select_matching_subclasses(:debit_when_sent_by_self, false, self.table_name, self.inheritance_column).map{|c| c.name}
+        debit_classes  = select_matching_subclasses(:debit_when_sent_by_self, true,  self.table_name, self.inheritance_column).map{|c| c.name}
+        credit_classes = select_matching_subclasses(:debit_when_sent_by_self, false, self.table_name, self.inheritance_column).map{|c| c.name}
         debit_when_sent      = merge_conditions({info.method(:sender_id)    => self_id, info.method(:type) => debit_classes})
         debit_when_received  = merge_conditions({info.method(:recipient_id) => self_id, info.method(:type) => credit_classes})
         credit_when_sent     = merge_conditions({info.method(:sender_id)    => self_id, info.method(:type) => credit_classes})
@@ -512,58 +553,6 @@ module Invoicing
     end
     
     
-    # Usually there is no need to derive classes directly from <tt>Invoicing::LedgerItem::Base</tt>.
-    # Use <tt>Invoicing::LedgerItem::Invoice</tt>, <tt>Invoicing::LedgerItem::CreditNote</tt>
-    # and <tt>Invoicing::LedgerItem::Payment</tt> instead.
-    class Base < ActiveRecord::Base
-      # acts_as_ledger_item is called in ActMethods.extended
-      
-      def initialize(*args)
-        super
-        # Initialise uuid attribute if possible
-        info = ledger_item_class_info
-        if self.has_attribute?(info.method(:uuid)) && info.uuid_generator
-          write_attribute(info.method(:uuid), info.uuid_generator.generate)
-        end
-      end
-    end
-    
-    # Base class for all types of invoice in your application.
-    class Invoice < Base
-      # acts_as_ledger_item is called in ActMethods.extended
-
-      # See <tt>Invoicing::LedgerItem#debit?</tt> and <tt>Invoicing::LedgerItem::ClassMethods#debit_when_sent_by_self</tt>
-      def self.debit_when_sent_by_self
-        true
-      end
-    end
-    
-    # Base class for all types of credit note in your application.
-    class CreditNote < Base
-      # acts_as_ledger_item is called in ActMethods.extended
-
-      # See <tt>Invoicing::LedgerItem#debit?</tt> and <tt>Invoicing::LedgerItem::ClassMethods#debit_when_sent_by_self</tt>
-      def self.debit_when_sent_by_self
-        false
-      end
-    end
-    
-    # Base class for all types of payment note in your application.
-    # Please note that this class doesn't implement any particular means of payment (such as credit
-    # card handling) -- the purpose of this class is to record the fact that a payment has taken
-    # place, not to deal with the actual mechanics of it. However, if you want to add support for
-    # credit card handling and implement it in a subclass of +Payment+, you're more than welcome,
-    # of course.
-    class Payment < Base
-      # acts_as_ledger_item is called in ActMethods.extended
-
-      # See <tt>Invoicing::LedgerItem#debit?</tt> and <tt>Invoicing::LedgerItem::ClassMethods#debit_when_sent_by_self</tt>
-      def self.debit_when_sent_by_self
-        false
-      end
-    end
-
-
     # Stores state in the ActiveRecord class object
     class ClassInfo < Invoicing::ClassInfo::Base #:nodoc:
       attr_reader :subtype, :uuid_generator
