@@ -263,7 +263,13 @@ module Invoicing
   # documented in this module (instance methods) and <tt>Invoicing::LedgerItem::ClassMethods</tt>
   # (class methods), the following methods are generated dynamically:
   #
-  # * FIXME describe dynamically generated methods
+  # +in_effect+:: Named scope which matches all closed invoices/credit notes (not open or cancelled)
+  #               and all cleared payments (not pending or failed). You probably want to use this
+  #               quite often, for all reporting purposes.
+  # +due_at+::    Named scope which takes a +DateTime+ argument and matches all ledger items whose
+  #               +due_date+ value is either +NULL+ or is not after the given time. For example,
+  #               you could run <tt>LedgerItem.due_at(Time.now).account_summaries</tt>
+  #               once a day and process payment for all accounts whose balance is not zero.
   module LedgerItem
     
     module ActMethods
@@ -273,24 +279,33 @@ module Invoicing
       # This method accepts a hash of options, all of which are optional:
       # <tt>:subtype</tt>:: One of <tt>:invoice</tt>, <tt>:credit_note</tt> or <tt>:payment</tt>.
       #
-      # Also, the name of any +LedgerItem+ subclass method (as documented on the +LedgerItem+ module)
-      # may be used as an option, with the value being the name under which that particular method
-      # or attribute can be found. This allows you to use names other than the defaults.
-      # For example:
+      # Also, the name of any attribute or method required by +LedgerItem+ (as documented on the
+      # +LedgerItem+ module) may be used as an option, with the value being the name under which
+      # that particular method or attribute can be found. This allows you to use names other than
+      # the defaults. For example, if your database column storing the invoice value is called
+      # +gross_amount+ instead of +total_amount+:
+      #
       #   acts_as_ledger_item :total_amount => :gross_amount
-      # if your database column storing the invoice value is called +gross_amount+ instead of
-      # +total_amount+.
       def acts_as_ledger_item(*args)
         Invoicing::ClassInfo.acts_as(Invoicing::LedgerItem, self, args)
-        before_validation :calculate_total_amount
         
-        # Set the 'amount' columns to act as currency values
-        total_amount = ledger_item_class_info.method(:total_amount)
-        tax_amount   = ledger_item_class_info.method(:tax_amount)
-        currency     = ledger_item_class_info.method(:currency)
-        acts_as_currency_value(total_amount, tax_amount, :currency => currency)
-        
-        extend Invoicing::FindSubclasses
+        info = ledger_item_class_info
+        if info.previous_info.nil? # Called for the first time?
+          before_validation :calculate_total_amount
+          
+          # Set the 'amount' columns to act as currency values
+          acts_as_currency_value(info.method(:total_amount), info.method(:tax_amount),
+            :currency => info.method(:currency))
+          
+          extend Invoicing::FindSubclasses
+          
+          # Dynamically created named scopes
+          named_scope :in_effect, :conditions => {info.method(:status) => ['closed', 'cleared']}
+          named_scope :due_at, lambda{ |date|
+            due_date = connection.quote_column_name(info.method(:due_date))
+            {:conditions => ["#{due_date} <= ? OR #{due_date} IS NULL", date]}
+          }
+        end
       end
     end
     

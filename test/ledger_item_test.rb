@@ -227,6 +227,14 @@ class LedgerItemTest < Test::Unit::TestCase
     assert_equal BigDecimal('15'), invoice.tax_amount2
   end
   
+  def test_calculate_total_amount_for_updated_invoice
+    invoice = MyInvoice.find(9)
+    invoice.line_items2 << SuperLineItem.new(:net_amount2 => 10, :tax_amount2 => 1.5)
+    invoice.save!
+    assert_equal([{'total_amount2' => '23.0000', 'tax_amount2' => '3.0000'}],
+      ActiveRecord::Base.connection.select_all("SELECT total_amount2, tax_amount2 FROM ledger_item_records WHERE id2=9"))
+  end
+  
   def test_line_items_error
     assert_raise RuntimeError do
       MyInvoice.find(1).line_items # not line_items2
@@ -246,6 +254,45 @@ class LedgerItemTest < Test::Unit::TestCase
       :balance => BigDecimal('1.00')}}
     conditions = ['issue_date2 >= ? AND issue_date2 < ?', DateTime.parse('2008-01-01'), DateTime.parse('2009-01-01')]
     assert_equal summary, MyLedgerItem.scoped(:conditions => conditions).account_summary(1, 2)
+  end
+  
+  def test_account_summaries
+    summaries = {
+      1 => {:GBP => {:balance => BigDecimal('140.97'), :sales => BigDecimal('141.97'),
+                     :purchases => BigDecimal('257.50'), :sale_receipts => BigDecimal('0.00'),
+                     :purchase_payments => BigDecimal('256.50')}
+           },
+      3 => {:USD => {:balance => BigDecimal('-432.10'), :sales => BigDecimal('0.00'),
+                     :purchases => BigDecimal('0.00'), :sale_receipts => BigDecimal('432.10'),
+                     :purchase_payments => BigDecimal('0.00')}
+           }
+    }
+    assert_equal summaries, MyLedgerItem.account_summaries(2)
+  end
+  
+  def test_account_summaries_with_scope
+    summaries = {
+      1 => {:GBP => {:balance => BigDecimal('-315.00'), :sales => BigDecimal('0.00'),
+                     :purchases => BigDecimal('315.00'), :sale_receipts => BigDecimal('0.00'),
+                     :purchase_payments => BigDecimal('0.00')}
+           },
+      3 => {:USD => {:balance => BigDecimal('-432.10'), :sales => BigDecimal('0.00'),
+                     :purchases => BigDecimal('0.00'), :sale_receipts => BigDecimal('432.10'),
+                     :purchase_payments => BigDecimal('0.00')}
+           }
+    }
+    conditions = {:conditions => ['issue_date2 < ?', DateTime.parse('2008-07-01')]}
+    assert_equal summaries, MyLedgerItem.scoped(conditions).account_summaries(2)
+  end
+  
+  def test_in_effect_scope
+    assert_equal [1,2,3,4,5,6,7,8,9,10], MyLedgerItem.all.map{|i| i.id}.sort
+    assert_equal [1,2,3,4,5,6], MyLedgerItem.in_effect.map{|i| i.id}.sort
+  end
+  
+  def test_due_at_scope
+    assert_equal [1,3,4,7,8,10], MyLedgerItem.due_at(DateTime.parse('2009-01-30')).map{|i| i.id}.sort
+    assert_equal [1,2,3,4,7,8,10], MyLedgerItem.due_at(DateTime.parse('2009-01-31')).map{|i| i.id}.sort
   end
   
 end

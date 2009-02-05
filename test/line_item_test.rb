@@ -20,6 +20,8 @@ end
 ####### Classes for use in the tests (also used by LedgerItemTest)
 
 class SuperLineItem < Invoicing::LineItem::Base
+  set_primary_key 'id2'
+  set_inheritance_column 'type2'
   set_table_name 'line_item_records'
   include LineItemMethods
   acts_as_line_item RENAMED_METHODS
