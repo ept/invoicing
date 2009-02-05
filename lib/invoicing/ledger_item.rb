@@ -307,7 +307,28 @@ module Invoicing
           }
         end
       end
-    end
+      
+      # Synonym for <tt>acts_as_ledger_item :subtype => :invoice</tt>. All options other than
+      # <tt>:subtype</tt> are passed on to +acts_as_ledger_item+. You should apply
+      # +acts_as_invoice+ only to a model which is a subclass of an +acts_as_ledger_item+ type.
+      def acts_as_invoice(options={})
+        acts_as_ledger_item(options.clone.update({:subtype => :invoice}))
+      end
+      
+      # Synonym for <tt>acts_as_ledger_item :subtype => :credit_note</tt>. All options other than
+      # <tt>:subtype</tt> are passed on to +acts_as_ledger_item+. You should apply
+      # +acts_as_credit_note+ only to a model which is a subclass of an +acts_as_ledger_item+ type.
+      def acts_as_credit_note(options={})
+        acts_as_ledger_item(options.clone.update({:subtype => :credit_note}))
+      end
+      
+      # Synonym for <tt>acts_as_ledger_item :subtype => :payment</tt>. All options other than
+      # <tt>:subtype</tt> are passed on to +acts_as_ledger_item+. You should apply
+      # +acts_as_payment+ only to a model which is a subclass of an +acts_as_ledger_item+ type.
+      def acts_as_payment(options={})
+        acts_as_ledger_item(options.clone.update({:subtype => :payment}))
+      end
+    end # module ActMethods
     
     # Overrides the default constructor of <tt>ActiveRecord::Base</tt> when +acts_as_ledger_item+
     # is called. If the +uuid+ gem is installed, this constructor creates a new UUID and assigns

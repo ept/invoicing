@@ -68,11 +68,11 @@ class InvoiceSubtype < MyInvoice
 end
 
 class MyCreditNote < MyLedgerItem
-  acts_as_ledger_item :subtype => :credit_note
+  acts_as_credit_note
 end
 
 class MyPayment < MyLedgerItem
-  acts_as_ledger_item :subtype => :payment
+  acts_as_payment
 end
 
 class CorporationTaxLiability < MyLedgerItem
@@ -96,7 +96,7 @@ class OverwrittenMethodsNotPresent < ActiveRecord::Base
   set_primary_key 'id2'
   set_inheritance_column 'type2'
   set_table_name 'ledger_item_records'
-  acts_as_ledger_item LedgerItemMethods::RENAMED_METHODS.clone.update({:subtype => :invoice})
+  acts_as_invoice LedgerItemMethods::RENAMED_METHODS
 end
 
 
