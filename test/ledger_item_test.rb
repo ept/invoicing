@@ -1,3 +1,5 @@
+# encoding: utf-8
+
 require File.join(File.dirname(__FILE__), 'test_helper.rb')
 
 ####### Helper stuff
@@ -81,7 +83,7 @@ class CorporationTaxLiability < MyLedgerItem
   end
 end
 
-class UUIDNotPresent < ActiveRecord::Base
+class UUIDNotPresentLedgerItem < ActiveRecord::Base
   set_primary_key 'id2'
   set_inheritance_column 'type2'
   set_table_name 'ledger_item_records'
@@ -92,7 +94,7 @@ class UUIDNotPresent < ActiveRecord::Base
   end
 end
 
-class OverwrittenMethodsNotPresent < ActiveRecord::Base
+class OverwrittenMethodsNotPresentLedgerItem < ActiveRecord::Base
   set_primary_key 'id2'
   set_inheritance_column 'type2'
   set_table_name 'ledger_item_records'
@@ -193,8 +195,8 @@ class LedgerItemTest < Test::Unit::TestCase
   def test_uuid_gem_not_present
     begin
       real_uuid = Object.send(:remove_const, :UUID)
-      UUIDNotPresent.acts_as_ledger_item(LedgerItemMethods::RENAMED_METHODS)
-      assert_nil UUIDNotPresent.new.get_class_info.uuid_generator
+      UUIDNotPresentLedgerItem.acts_as_ledger_item(LedgerItemMethods::RENAMED_METHODS)
+      assert_nil UUIDNotPresentLedgerItem.new.get_class_info.uuid_generator
     ensure
       Object.send(:const_set, :UUID, real_uuid)
     end
@@ -202,19 +204,19 @@ class LedgerItemTest < Test::Unit::TestCase
   
   def test_must_overwrite_sender_details
     assert_raise RuntimeError do
-      OverwrittenMethodsNotPresent.new.sender_details
+      OverwrittenMethodsNotPresentLedgerItem.new.sender_details
     end
   end
   
   def test_must_overwrite_recipient_details
     assert_raise RuntimeError do
-      OverwrittenMethodsNotPresent.new.recipient_details
+      OverwrittenMethodsNotPresentLedgerItem.new.recipient_details
     end
   end
   
   def test_must_provide_line_items_association
     assert_raise RuntimeError do
-      OverwrittenMethodsNotPresent.new.line_items
+      OverwrittenMethodsNotPresentLedgerItem.new.line_items
     end
   end
   
