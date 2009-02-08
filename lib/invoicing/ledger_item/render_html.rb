@@ -20,10 +20,13 @@ module Invoicing
       
       
       class HTMLOutputBuilder #:nodoc:
+      
+        HTML_ESCAPE = { '&' => '&amp;', '>' => '&gt;', '<' => '&lt;', '"' => '&quot;' }
+            
         DEFAULTS = {
           :each_line_item => proc{|line_item|
             info = line_item.send(:line_item_class_info)
-            "<tr><td>#{info.get(line_item, :description)}</td></tr>"
+            "\t<tr>\n\t\t<td>#{h(info.get(line_item, :description))}</td>\n\t</tr>\n"
           }
         }
         
@@ -43,6 +46,10 @@ module Invoicing
           else
             raise ArgumentError, "#{method_id} expects exactly one value or block argument"
           end
+        end
+        
+        def self.h(s)
+          s.to_s.gsub(/[#{HTML_ESCAPE.keys.join}]/) { |char| HTML_ESCAPE[char] }
         end
         
         def invoke(fragment_id, *args)
