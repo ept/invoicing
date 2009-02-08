@@ -148,7 +148,7 @@ module Invoicing
               monetary_total.cbc :PayableAmount, (factor*total_amount).to_s, :currencyID => currency
             end
             
-            line_items.each do |line_item|
+            line_items.sorted(:tax_point).each do |line_item|
               line_tag = if [:CreditNote, :SelfBilledCreditNote].include? doc_type
                 :CreditNoteLine
               else

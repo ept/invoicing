@@ -83,19 +83,6 @@
         <cbc:PayableAmount currencyID="GBP">315.0</cbc:PayableAmount>
     </cac:LegalMonetaryTotal>
     <cac:InvoiceLine>
-        <cbc:ID>1</cbc:ID>
-        <cbc:UUID>0cc659f0-cfac-012b-481d-0017f22d32c0</cbc:UUID>
-        <cbc:InvoicedQuantity>1.0</cbc:InvoicedQuantity>
-        <cbc:LineExtensionAmount currencyID="GBP">100.0</cbc:LineExtensionAmount>
-        <cbc:TaxPointDate>2008-06-30</cbc:TaxPointDate>
-        <cac:TaxTotal>
-            <cbc:TaxAmount currencyID="GBP">15.0</cbc:TaxAmount>
-        </cac:TaxTotal>
-        <cac:Item>
-            <cbc:Description>moo</cbc:Description>
-        </cac:Item>
-    </cac:InvoiceLine>
-    <cac:InvoiceLine>
         <cbc:ID>2</cbc:ID>
         <cbc:UUID>0cc65e20-cfac-012b-481d-0017f22d32c0</cbc:UUID>
         <cbc:InvoicedQuantity>4.0</cbc:InvoicedQuantity>
@@ -106,6 +93,19 @@
         </cac:TaxTotal>
         <cac:Item>
             <cbc:Description>this is the SubLineItem</cbc:Description>
+        </cac:Item>
+    </cac:InvoiceLine>
+    <cac:InvoiceLine>
+        <cbc:ID>1</cbc:ID>
+        <cbc:UUID>0cc659f0-cfac-012b-481d-0017f22d32c0</cbc:UUID>
+        <cbc:InvoicedQuantity>1.0</cbc:InvoicedQuantity>
+        <cbc:LineExtensionAmount currencyID="GBP">100.0</cbc:LineExtensionAmount>
+        <cbc:TaxPointDate>2008-06-30</cbc:TaxPointDate>
+        <cac:TaxTotal>
+            <cbc:TaxAmount currencyID="GBP">15.0</cbc:TaxAmount>
+        </cac:TaxTotal>
+        <cac:Item>
+            <cbc:Description>moo</cbc:Description>
         </cac:Item>
     </cac:InvoiceLine>
 </ubl:Invoice>

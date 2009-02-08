@@ -120,4 +120,12 @@ class LineItemTest < Test::Unit::TestCase
     assert_equal [1,2,3,4,5,6], SuperLineItem.in_effect.map{|i| i.id}.sort
   end
   
+  def test_sorted_scope
+    assert_equal [4,2,1,5,3,6,7,8], SuperLineItem.sorted(:tax_point).map{|i| i.id}
+  end
+  
+  def test_sorted_scope_with_non_existent_column
+    assert_equal [1,2,3,4,5,6,7,8], SuperLineItem.sorted(:this_column_does_not_exist).map{|i| i.id}
+  end
+  
 end

@@ -297,4 +297,12 @@ class LedgerItemTest < Test::Unit::TestCase
     assert_equal [1,2,3,4,7,8,10], MyLedgerItem.due_at(DateTime.parse('2009-01-31')).map{|i| i.id}.sort
   end
   
+  def test_sorted_scope
+    assert_equal [5,1,4,3,8,2,6,7,9,10], MyLedgerItem.sorted(:issue_date).map{|i| i.id}
+  end
+  
+  def test_sorted_scope_with_non_existent_column
+    assert_equal [1,2,3,4,5,6,7,8,9,10], MyLedgerItem.sorted(:this_column_does_not_exist).map{|i| i.id}
+  end
+  
 end

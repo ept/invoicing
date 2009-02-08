@@ -270,6 +270,9 @@ module Invoicing
   #               +due_date+ value is either +NULL+ or is not after the given time. For example,
   #               you could run <tt>LedgerItem.due_at(Time.now).account_summaries</tt>
   #               once a day and process payment for all accounts whose balance is not zero.
+  # +sorted+::    Named scope which takes a column name as documented above (even if it has been
+  #               renamed), and sorts the query by that column. If the column does not exist,
+  #               silently falls back to sorting by the primary key.
   module LedgerItem
     
     module ActMethods
@@ -303,9 +306,19 @@ module Invoicing
           
           # Dynamically created named scopes
           named_scope :in_effect, :conditions => {info.method(:status) => ['closed', 'cleared']}
+          
           named_scope :due_at, lambda{ |date|
             due_date = connection.quote_column_name(info.method(:due_date))
             {:conditions => ["#{due_date} <= ? OR #{due_date} IS NULL", date]}
+          }
+          
+          named_scope :sorted, lambda{|column|
+            column = ledger_item_class_info.method(column).to_s
+            if column_names.include?(column)
+              {:order => "#{connection.quote_column_name(column)}, #{connection.quote_column_name(primary_key)}"}
+            else
+              {:order => connection.quote_column_name(primary_key)}
+            end
           }
         end
       end
