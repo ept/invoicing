@@ -21,7 +21,7 @@ CREATE TABLE line_item_records (
 
 INSERT INTO line_item_records
     (id2, type2, ledger_item_id2, net_amount2, tax_amount2, uuid2,                              tax_point2,   tax_rate_id2, price_id2, quantity2, creator_id2, created_at,            updated_at) values
-    (1,   'SuperLineItem',     1, 100.00,      15.00,   '0cc659f0-cfac-012b-481d-0017f22d32c0', '2008-06-31', 1,            1,         1,         42,          '2008-06-31 12:34:56', '2008-06-31 12:34:56'),
+    (1,   'SuperLineItem',     1, 100.00,      15.00,   '0cc659f0-cfac-012b-481d-0017f22d32c0', '2008-06-30', 1,            1,         1,         42,          '2008-06-31 12:34:56', '2008-06-31 12:34:56'),
     (2,   'SubLineItem',       1, 200.00,      0,       '0cc65e20-cfac-012b-481d-0017f22d32c0', '2008-06-25', 2,            2,         4,         42,          '2008-06-31 21:43:56', '2008-06-31 21:43:56'),
     (3,   'OtherLineItem',     2, 123.45,      18.52,   '0cc66060-cfac-012b-481d-0017f22d32c0', '2009-01-01', 1,            NULL,      1,         43,          '2008-12-25 00:00:00', '2008-12-26 00:00:00'),
     (4,   'UntaxedLineItem',   5, 432.10,      NULL,    '0cc662a0-cfac-012b-481d-0017f22d32c0', '2007-04-23', NULL,         3,         NULL,      99,          '2007-04-03 12:34:00', '2007-04-03 12:34:00'),

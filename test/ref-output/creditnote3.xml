@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ubl:Invoice xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" xmlns:ubl="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2" xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
-    <cbc:ID>1</cbc:ID>
-    <cbc:UUID>30f4f680-d1b9-012b-48a5-0017f22d32c0</cbc:UUID>
-    <cbc:IssueDate>2008-06-30</cbc:IssueDate>
+<ubl:CreditNote xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" xmlns:ubl="urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2" xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+    <cbc:ID>putain!</cbc:ID>
+    <cbc:UUID>671a05d0-d1ba-012b-48a5-0017f22d32c0</cbc:UUID>
+    <cbc:IssueDate>2008-07-13</cbc:IssueDate>
     <cbc:IssueTime>00:00:00+00:00</cbc:IssueTime>
-    <cbc:InvoiceTypeCode>MyInvoice</cbc:InvoiceTypeCode>
-    <cbc:Note>MyInvoice 1</cbc:Note>
-    <cbc:TaxPointDate>2008-06-30</cbc:TaxPointDate>
+    <cbc:TaxPointDate>2008-07-13</cbc:TaxPointDate>
+    <cbc:Note>MyCreditNote 3</cbc:Note>
     <cac:InvoicePeriod>
         <cbc:StartDate>2008-06-01</cbc:StartDate>
         <cbc:StartTime>00:00:00+00:00</cbc:StartTime>
@@ -67,45 +66,24 @@
             </cac:Contact>
         </cac:Party>
     </cac:AccountingCustomerParty>
-    <cac:PaymentTerms>
-        <cac:SettlementPeriod>
-            <cbc:StartDate>2008-06-30</cbc:StartDate>
-            <cbc:StartTime>00:00:00+00:00</cbc:StartTime>
-            <cbc:EndDate>2008-07-30</cbc:EndDate>
-            <cbc:EndTime>00:00:00+00:00</cbc:EndTime>
-        </cac:SettlementPeriod>
-    </cac:PaymentTerms>
     <cac:TaxTotal>
-        <cbc:TaxAmount currencyID="GBP">15.0</cbc:TaxAmount>
+        <cbc:TaxAmount currencyID="GBP">7.5</cbc:TaxAmount>
     </cac:TaxTotal>
     <cac:LegalMonetaryTotal>
-        <cbc:TaxExclusiveAmount currencyID="GBP">300.0</cbc:TaxExclusiveAmount>
-        <cbc:PayableAmount currencyID="GBP">315.0</cbc:PayableAmount>
+        <cbc:TaxExclusiveAmount currencyID="GBP">50.0</cbc:TaxExclusiveAmount>
+        <cbc:PayableAmount currencyID="GBP">57.5</cbc:PayableAmount>
     </cac:LegalMonetaryTotal>
-    <cac:InvoiceLine>
-        <cbc:ID>1</cbc:ID>
-        <cbc:UUID>0cc659f0-cfac-012b-481d-0017f22d32c0</cbc:UUID>
-        <cbc:InvoicedQuantity>1.0</cbc:InvoicedQuantity>
-        <cbc:LineExtensionAmount currencyID="GBP">100.0</cbc:LineExtensionAmount>
-        <cbc:TaxPointDate>2008-06-30</cbc:TaxPointDate>
+    <cac:CreditNoteLine>
+        <cbc:ID>5</cbc:ID>
+        <cbc:UUID>eab28cf0-d1b4-012b-48a5-0017f22d32c0</cbc:UUID>
+        <cbc:CreditedQuantity>0.5</cbc:CreditedQuantity>
+        <cbc:LineExtensionAmount currencyID="GBP">50.0</cbc:LineExtensionAmount>
+        <cbc:TaxPointDate>2008-07-13</cbc:TaxPointDate>
         <cac:TaxTotal>
-            <cbc:TaxAmount currencyID="GBP">15.0</cbc:TaxAmount>
+            <cbc:TaxAmount currencyID="GBP">7.5</cbc:TaxAmount>
         </cac:TaxTotal>
         <cac:Item>
             <cbc:Description>moo</cbc:Description>
         </cac:Item>
-    </cac:InvoiceLine>
-    <cac:InvoiceLine>
-        <cbc:ID>2</cbc:ID>
-        <cbc:UUID>0cc65e20-cfac-012b-481d-0017f22d32c0</cbc:UUID>
-        <cbc:InvoicedQuantity>4.0</cbc:InvoicedQuantity>
-        <cbc:LineExtensionAmount currencyID="GBP">200.0</cbc:LineExtensionAmount>
-        <cbc:TaxPointDate>2008-06-25</cbc:TaxPointDate>
-        <cac:TaxTotal>
-            <cbc:TaxAmount currencyID="GBP">0.0</cbc:TaxAmount>
-        </cac:TaxTotal>
-        <cac:Item>
-            <cbc:Description>this is the SubLineItem</cbc:Description>
-        </cac:Item>
-    </cac:InvoiceLine>
-</ubl:Invoice>
+    </cac:CreditNoteLine>
+</ubl:CreditNote>

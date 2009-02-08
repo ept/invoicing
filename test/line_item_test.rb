@@ -30,7 +30,10 @@ class SuperLineItem < ActiveRecord::Base
   belongs_to :ledger_item2, :class_name => 'MyLedgerItem', :foreign_key => 'ledger_item_id2'
 end
 
-class SubLineItem < SuperLineItem  
+class SubLineItem < SuperLineItem
+  def description2
+    "this is the SubLineItem"
+  end
 end
 
 class OtherLineItem < SuperLineItem

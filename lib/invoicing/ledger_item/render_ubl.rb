@@ -90,27 +90,46 @@ module Invoicing
             invoice.cbc :ID, identifier
             invoice.cbc :UUID, uuid if uuid
             
-            issue_date_formatted, issue_time_formatted = (issue_date || Time.now).xmlschema.split('T')
+            issue_date_formatted, issue_time_formatted = (issue_date || Time.now).in_time_zone.xmlschema.split('T')
             invoice.cbc :IssueDate, issue_date_formatted
             invoice.cbc :IssueTime, issue_time_formatted
             
-            # Invoice, SelfBilledInvoice, CreditNote etc. have the child elements InvoiceTypeCode,
-            # Note and TaxPointDate in different orders. WTF?! This is the element order of Invoice.
-            invoice.cbc :InvoiceTypeCode, method_missing(:type) if [:Invoice, :SelfBilledInvoice].include? doc_type
-            invoice.cbc :Note, description
-            invoice.cbc :TaxPointDate, issue_date_formatted
+            # Different document types have the child elements InvoiceTypeCode, Note and
+            # TaxPointDate in a different order. WTF?!
+            if doc_type == :Invoice
+              invoice.cbc :InvoiceTypeCode, method_missing(:type)
+              invoice.cbc :Note, description
+              invoice.cbc :TaxPointDate, issue_date_formatted
+            else
+              invoice.cbc :TaxPointDate, issue_date_formatted
+              invoice.cbc :InvoiceTypeCode, method_missing(:type) if doc_type == :SelfBilledInvoice
+              invoice.cbc :Note, description
+            end
             
             invoice.cac :InvoicePeriod do |invoice_period|
               build_period(invoice_period, period_start, period_end)
             end if period_start && period_end
             
-            invoice.cac :AccountingSupplierParty do |supplier|
-              build_party supplier, sender_details
-            end
+            if [:Invoice, :CreditNote].include?(doc_type)
             
-            invoice.cac :AccountingCustomerParty do |customer|
-              customer.cbc :SupplierAssignedAccountID, sender_id
-              build_party customer, recipient_details
+              invoice.cac :AccountingSupplierParty do |supplier|
+                build_party supplier, sender_details
+              end
+              invoice.cac :AccountingCustomerParty do |customer|
+                customer.cbc :SupplierAssignedAccountID, recipient_id
+                build_party customer, recipient_details
+              end
+              
+            elsif [:SelfBilledInvoice, :SelfBilledCreditNote].include?(doc_type)
+            
+              invoice.cac :AccountingCustomerParty do |customer|
+                build_party customer, recipient_details
+              end
+              invoice.cac :AccountingSupplierParty do |supplier|
+                supplier.cbc :CustomerAssignedAccountID, sender_id
+                build_party supplier, sender_details
+              end
+              
             end
             
             invoice.cac :PaymentTerms do |payment_terms|
@@ -120,13 +139,13 @@ module Invoicing
             end if due_date && [:Invoice, :SelfBilledInvoice].include?(doc_type)
             
             invoice.cac :TaxTotal do |tax_total|
-              tax_total.cbc :TaxAmount, tax_amount.to_s, :currencyID => currency
+              tax_total.cbc :TaxAmount, (factor*tax_amount).to_s, :currencyID => currency
             end if tax_amount
             
             invoice.cac :LegalMonetaryTotal do |monetary_total|
-              monetary_total.cbc :TaxExclusiveAmount, (total_amount - tax_amount).to_s,
+              monetary_total.cbc :TaxExclusiveAmount, (factor*(total_amount - tax_amount)).to_s,
                 :currencyID => currency if tax_amount
-              monetary_total.cbc :PayableAmount, total_amount.to_s, :currencyID => currency
+              monetary_total.cbc :PayableAmount, (factor*total_amount).to_s, :currencyID => currency
             end
             
             line_items.each do |line_item|
@@ -154,8 +173,8 @@ module Invoicing
         #   <cbc:EndDate>2008-07-02</cbc:EndDate>
         #   <cbc:EndTime>01:02:03+02:00</cbc:EndTime>
         def build_period(xml, start_datetime, end_datetime)
-          start_date, start_time = start_datetime.xmlschema.split('T')
-          end_date, end_time = end_datetime.xmlschema.split('T')
+          start_date, start_time = start_datetime.in_time_zone.xmlschema.split('T')
+          end_date, end_time = end_datetime.in_time_zone.xmlschema.split('T')
           xml.cbc :StartDate, start_date
           xml.cbc :StartTime, start_time
           xml.cbc :EndDate, end_date
@@ -224,12 +243,13 @@ module Invoicing
         def build_line_item(invoice_line, line_item)
           invoice_line.cbc :ID, id_of(line_item)
           invoice_line.cbc :UUID, uuid_of(line_item) if uuid_of(line_item)
-          invoice_line.cbc :InvoicedQuantity, quantity_of(line_item) if quantity_of(line_item)
-          invoice_line.cbc :LineExtensionAmount, net_amount_of(line_item), :currencyID => currency
-          invoice_line.cbc :TaxPointDate, tax_point_of(line_item).strftime('%Y-%m-%d') if tax_point_of(line_item)
+          quantity_tag = [:Invoice, :SelfBilledInvoice].include?(doc_type) ? :InvoicedQuantity : :CreditedQuantity
+          invoice_line.cbc quantity_tag, quantity_of(line_item) if quantity_of(line_item)
+          invoice_line.cbc :LineExtensionAmount, (factor*net_amount_of(line_item)).to_s, :currencyID => currency
+          invoice_line.cbc :TaxPointDate, tax_point_of(line_item).in_time_zone.strftime('%Y-%m-%d') if tax_point_of(line_item)
           
           invoice_line.cac :TaxTotal do |tax_total|
-            tax_total.cbc :TaxAmount, tax_amount_of(line_item).to_s, :currencyID => currency
+            tax_total.cbc :TaxAmount, (factor*tax_amount_of(line_item)).to_s, :currencyID => currency
           end if tax_amount_of(line_item)
           
           invoice_line.cac :Item do |item|
