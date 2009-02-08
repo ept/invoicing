@@ -298,6 +298,8 @@ module Invoicing
             :currency => info.method(:currency))
           
           extend Invoicing::FindSubclasses
+          include Invoicing::LedgerItem::RenderHTML
+          include Invoicing::LedgerItem::RenderUBL
           
           # Dynamically created named scopes
           named_scope :in_effect, :conditions => {info.method(:status) => ['closed', 'cleared']}

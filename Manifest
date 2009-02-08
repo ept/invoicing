@@ -4,6 +4,8 @@ lib/invoicing/class_info.rb
 lib/invoicing/countries/uk.rb
 lib/invoicing/currency_value.rb
 lib/invoicing/find_subclasses.rb
+lib/invoicing/ledger_item/render_html.rb
+lib/invoicing/ledger_item/render_ubl.rb
 lib/invoicing/ledger_item.rb
 lib/invoicing/line_item.rb
 lib/invoicing/price.rb
@@ -37,6 +39,8 @@ test/models/README
 test/models/test_subclass_in_another_file.rb
 test/models/test_subclass_not_in_database.rb
 test/price_test.rb
+test/render_html_test.rb
+test/render_ubl_test.rb
 test/setup.rb
 test/tax_rate_test.rb
 test/taxable_test.rb
