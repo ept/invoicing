@@ -421,7 +421,7 @@ module Invoicing
     # <tt>:country</tt>::      The billing address country (human-readable).
     # <tt>:country_code</tt>:: The two-letter country code of the billing address, according to
     #                          ISO-3166-1[http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2].
-    # <tt>:vat_number</tt>::   The Value Added Tax registration code of this person or organisation, if they have
+    # <tt>:tax_number</tt>::   The Value Added Tax registration code of this person or organisation, if they have
     #                          one, preferably including the country identifier at the beginning. This is important for
     #                          transactions within the European Union.
     def sender_details

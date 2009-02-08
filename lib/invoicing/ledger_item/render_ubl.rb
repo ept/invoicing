@@ -217,11 +217,11 @@ module Invoicing
             end
             
             party.cac :PartyTaxScheme do |party_tax_scheme|
-              party_tax_scheme.cbc :CompanyID, details[:vat_number]
+              party_tax_scheme.cbc :CompanyID, details[:tax_number]
               party_tax_scheme.cac :TaxScheme do |tax_scheme|
                 tax_scheme.cbc :ID, "VAT" # TODO: make country-dependent (e.g. GST in Australia)
               end
-            end if details[:vat_number]
+            end if details[:tax_number]
             
             party.cac :Contact do |contact|
               contact.cbc :Name, details[:contact_name]

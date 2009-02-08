@@ -21,12 +21,12 @@ module LedgerItemMethods
         {:is_self => true, :name => 'Unlimited Limited', :contact_name => "Mr B. Badger",
          :address => "The Sett\n5 Badger Lane\n", :city => "Badgertown", :state => "",
          :postal_code => "Badger999", :country => "England", :country_code => "GB",
-         :vat_number => "123456789"}
+         :tax_number => "123456789"}
       when 2
         {:name => 'Lovely Customer Inc.', :contact_name => "Fred",
          :address => "The pasture", :city => "Mootown", :state => "Cow Kingdom",
          :postal_code => "MOOO", :country => "Scotland", :country_code => "GB",
-         :vat_number => "987654321"}
+         :tax_number => "987654321"}
       when 3
         {:name => 'I drink milk', :address => "Guzzle guzzle", :city => "Cheesetown",
          :postal_code => "12345", :country => "United States", :country_code => "US"}
