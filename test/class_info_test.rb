@@ -238,6 +238,14 @@ class ClassInfoTest < Test::Unit::TestCase
     assert_equal 'this is option2', ClassInfoTest2Record.test2_class_info.get(ClassInfoTest2Record.find(1), :option2)
   end
   
+  def test_method_on_nil_object
+    assert_nil ClassInfoTest2Record.test2_class_info.get(nil, :option2)
+  end
+  
+  def test_method_not_found_via_class_info
+    assert_nil ClassInfoTest2Record.test2_class_info.get(ClassInfoTest2Record.find(1), :this_method_does_not_exist)
+  end
+  
   def test_inherited_to_empty_subclass
     assert_not_nil ClassInfoTestEmptySubclass.new.get_class_info
     assert_equal ClassInfoTestEmptySubclass.new.get_class_info, ClassInfoTestRecord.new.get_class_info

@@ -171,9 +171,10 @@ module Invoicing
       end
       
       # Returns the value returned by calling +method_name+ (renamed through options using +method+)
-      # on +object+, or +nil+ if +object+ is +nil+.
+      # on +object+. Returns +nil+ if +object+ is +nil+ or +object+ does not respond to that method.
       def get(object, method_name)
-        object.nil? ? nil : object.send(method(method_name))
+        meth = method(method_name)
+        (object.nil? || !object.respond_to?(meth)) ? nil : object.send(meth)
       end
 
       # Assigns +new_value+ to <tt>method_name=</tt> (renamed through options using +method+)
