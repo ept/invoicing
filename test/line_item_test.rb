@@ -73,6 +73,10 @@ class LineItemTest < Test::Unit::TestCase
     assert_equal '£15.00', SuperLineItem.find(1).tax_amount2_formatted
   end
 
+  def test_gross_amount_is_currency_value
+    assert_equal '£115.00', SuperLineItem.find(1).gross_amount_formatted
+  end
+  
   def test_assign_uuid_to_new_record
     record = SuperLineItem.new
     begin
