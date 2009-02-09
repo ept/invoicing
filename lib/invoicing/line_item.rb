@@ -194,7 +194,9 @@ module Invoicing
     
     # The sum of +net_amount+ and +tax_amount+.
     def gross_amount
-      line_item_class_info.get(self, :net_amount) + line_item_class_info.get(self, :tax_amount)
+      net_amount = line_item_class_info.get(self, :net_amount)
+      tax_amount = line_item_class_info.get(self, :tax_amount)
+      (net_amount && tax_amount) ? (net_amount + tax_amount) : nil
     end
 
     # +gross_amount+ formatted in human-readable form using the line item's currency.

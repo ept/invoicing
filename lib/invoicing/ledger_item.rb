@@ -395,7 +395,9 @@ module Invoicing
 
     # The difference +total_amount+ minus +tax_amount+.
     def net_amount
-      ledger_item_class_info.get(self, :total_amount) - ledger_item_class_info.get(self, :tax_amount)
+      total_amount = ledger_item_class_info.get(self, :total_amount)
+      tax_amount   = ledger_item_class_info.get(self, :tax_amount)
+      (total_amount && tax_amount) ? (total_amount - tax_amount) : nil
     end
     
     # +net_amount+ formatted in human-readable form using the ledger item's currency.

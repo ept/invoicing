@@ -120,6 +120,10 @@ class LedgerItemTest < Test::Unit::TestCase
     assert_equal BigDecimal('300'), MyInvoice.find(1).net_amount
   end
   
+  def test_net_amount_nil
+    assert_nil MyInvoice.new.net_amount
+  end
+  
   def test_net_amount_formatted
     assert_equal '£300.00', MyInvoice.find(1).net_amount_formatted
   end
