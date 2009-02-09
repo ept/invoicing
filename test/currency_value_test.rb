@@ -49,6 +49,10 @@ class CurrencyValueTest < Test::Unit::TestCase
     assert_equal "€ 95.15", EurosInFinlandRecord.find(1).amount_formatted
   end
   
+  def test_format_custom_value
+    assert_equal "€1,357.90", CurrencyValueRecord.find(2).format_currency_value(BigDecimal('1357.9'))
+  end
+  
   def test_load_from_database_and_format
     assert_equal BigDecimal('123.45'), CurrencyValueRecord.find(1).amount
     assert_equal "£123.45", CurrencyValueRecord.find(1).amount_formatted

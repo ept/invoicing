@@ -91,6 +91,12 @@ module Invoicing
         before_save :write_back_currency_values if currency_value_class_info.previous_info.nil?
       end
     end
+
+    # Format a numeric monetary value into a human-readable string, in the currency of the
+    # current model object.
+    def format_currency_value(value)
+      currency_value_class_info.format_value(self, value)
+    end
     
     
     # Called automatically via +before_save+. Writes the result of converting +CurrencyValue+ attributes
@@ -128,8 +134,7 @@ module Invoicing
           
           define_method("#{attr}_formatted") do
             begin
-              value = Kernel.Float(send("#{attr}_before_type_cast"))
-              currency_value_class_info.format_value(self, value)
+              format_currency_value(Kernel.Float(send("#{attr}_before_type_cast")))
             rescue ArgumentError, TypeError
               ''  # if <attr>_before_type_cast could not be converted to float
             end
