@@ -72,8 +72,12 @@ class LineItemTest < Test::Unit::TestCase
   def test_tax_amount_is_currency_value
     assert_equal '£15.00', SuperLineItem.find(1).tax_amount2_formatted
   end
+  
+  def test_gross_amount
+    assert_equal BigDecimal('115'), SuperLineItem.find(1).gross_amount
+  end
 
-  def test_gross_amount_is_currency_value
+  def test_gross_amount_formatted
     assert_equal '£115.00', SuperLineItem.find(1).gross_amount_formatted
   end
   

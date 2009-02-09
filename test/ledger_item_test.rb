@@ -116,7 +116,11 @@ class LedgerItemTest < Test::Unit::TestCase
     assert_equal '£15.00', record.tax_amount2_formatted
   end
   
-  def test_net_amount_is_currency_value
+  def test_net_amount
+    assert_equal BigDecimal('300'), MyInvoice.find(1).net_amount
+  end
+  
+  def test_net_amount_formatted
     assert_equal '£300.00', MyInvoice.find(1).net_amount_formatted
   end
   
