@@ -39,10 +39,13 @@ test/models/README
 test/models/test_subclass_in_another_file.rb
 test/models/test_subclass_not_in_database.rb
 test/price_test.rb
+test/ref-output/creditnote3.html
 test/ref-output/creditnote3.xml
 test/ref-output/invoice1.html
 test/ref-output/invoice1.xml
+test/ref-output/invoice2.html
 test/ref-output/invoice2.xml
+test/ref-output/invoice_null.html
 test/render_html_test.rb
 test/render_ubl_test.rb
 test/setup.rb

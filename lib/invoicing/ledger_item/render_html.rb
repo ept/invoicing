@@ -38,7 +38,8 @@ module Invoicing
           @options = default_options
           @options.update(options)
           @custom_fragments = {}
-          @factor = (get(:total_amount) < BigDecimal('0')) ? BigDecimal('-1') : BigDecimal('1')
+          total_amount = get(:total_amount)
+          @factor = (total_amount && total_amount < BigDecimal('0')) ? BigDecimal('-1') : BigDecimal('1')
         end
         
         def default_options
@@ -73,7 +74,7 @@ module Invoicing
           end
           
           return super unless respond_to? "default_#{method_id}"
-          
+
           if block_given? && args.empty?
             custom_fragments[method_id] = proc &block
           elsif args.length == 1
@@ -119,53 +120,61 @@ module Invoicing
 
         # Renders an invoice or credit note to HTML
         def build
-          invoke_page_layout(params_hash(
+          addresses_table_deps = [:sender_label, :recipient_label, :sender_address, :recipient_address, {
+            :sender_tax_number    => :tax_number_label,
+            :recipient_tax_number => :tax_number_label
+          }]
+          
+          metadata_table_deps = [{
+            :identifier   =>  :identifier_label,
+            :issue_date   => [:date_format, :issue_date_label],
+            :period_start => [:date_format, :period_start_label],
+            :period_end   => [:date_format, :period_end_label],
+            :due_date     => [:date_format, :due_date_label]
+          }]
+          
+          line_items_header_deps = [:line_tax_point_label, :line_quantity_label, :line_description_label,
+            :line_net_amount_label, :line_tax_amount_label, :line_gross_amount_label]
+            
+          line_items_subtotal_deps = [:subtotal_label, :net_amount_label, :tax_amount_label,
+            :gross_amount_label, {
+            :net_amount => :net_amount_label,
+            :tax_amount => :tax_amount_label,
+            :total_amount => :gross_amount_label
+          }]
+          
+          line_items_total_deps = [:total_label, :net_amount_label, :tax_amount_label,
+            :gross_amount_label, {
+            :net_amount => :net_amount_label,
+            :tax_amount => :tax_amount_label,
+            :total_amount => :gross_amount_label
+          }]
+          
+          page_layout_deps = {
             :title_tag => :title,
-            
-            :addresses_table => [:sender_label, :recipient_label, :sender_address, :recipient_address, {
-              :sender_tax_number    => :tax_number_label,
-              :recipient_tax_number => :tax_number_label
-            }],
-            
-            :metadata_table => [{
-              :identifier   =>  :identifier_label,
-              :issue_date   => [:date_format, :issue_date_label],
-              :period_start => [:date_format, :period_start_label],
-              :period_end   => [:date_format, :period_end_label],
-              :due_date     => [:date_format, :due_date_label]
-            }],
-            
+            :addresses_table => addresses_table_deps,
+            :metadata_table => metadata_table_deps,
             :description_tag => :description,
-            
             :line_items_table => [:line_items_list, {
-              :line_items_header   => [:line_tax_point_label, :line_quantity_label, :line_description_label,
-                :line_net_amount_label, :line_tax_amount_label, :line_gross_amount_label],
-              :line_items_subtotal => [:subtotal_label, :net_amount_label, :tax_amount_label,
-                :gross_amount_label, {
-                :net_amount => :net_amount_label,
-                :tax_amount => :tax_amount_label,
-                :total_amount => :gross_amount_label
-              }],
-              :line_items_total    => [:total_label, :net_amount_label, :tax_amount_label,
-                :gross_amount_label, {
-                :net_amount => :net_amount_label,
-                :tax_amount => :tax_amount_label,
-                :total_amount => :gross_amount_label
-              }]
+              :line_items_header   => line_items_header_deps,
+              :line_items_subtotal => line_items_subtotal_deps,
+              :line_items_total    => line_items_total_deps
             }]
-          ))
+          }
+          
+          invoke_page_layout(params_hash(page_layout_deps))
         end
         
         def default_date_format
           "%Y-%m-%d"
         end
         
-        def default_title
-          (factor == BigDecimal('-1')) ? 'Credit Note' : 'Invoice'
+        def default_invoice_label
+          "Invoice"
         end
         
-        def default_title_tag(params)
-          "<h1 class=\"invoice\">#{params[:title]}</h1>\n"
+        def default_credit_note_label
+          "Credit Note"
         end
         
         def default_recipient_label
@@ -242,6 +251,14 @@ module Invoicing
         
         def default_gross_amount_label
           ""
+        end
+        
+        def default_title
+          (factor == BigDecimal('-1')) ? invoke_credit_note_label : invoke_invoice_label
+        end
+        
+        def default_title_tag(params)
+          "<h1 class=\"invoice\">#{params[:title]}</h1>\n"
         end
         
         def default_address(details)

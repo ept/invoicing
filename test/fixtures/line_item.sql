@@ -4,7 +4,7 @@ CREATE TABLE line_item_records (
     id2 int primary key auto_increment,
     type2 varchar(255),
     ledger_item_id2 int not null,
-    net_amount2 decimal(20,4) not null,
+    net_amount2 decimal(20,4),
     tax_amount2 decimal(20,4),
     uuid2 varchar(40),
     tax_point2 datetime,
