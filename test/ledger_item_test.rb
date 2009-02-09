@@ -116,6 +116,10 @@ class LedgerItemTest < Test::Unit::TestCase
     assert_equal '£15.00', record.tax_amount2_formatted
   end
   
+  def test_net_amount_is_currency_value
+    assert_equal '£300.00', MyInvoice.find(1).net_amount_formatted
+  end
+  
   def test_sent_by_nil_is_treated_as_self
     assert MyInvoice.find(1).sent_by?(nil)
     assert MyCreditNote.find(3).sent_by?(nil)
