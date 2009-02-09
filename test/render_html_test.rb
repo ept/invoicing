@@ -3,13 +3,16 @@
 require File.join(File.dirname(__FILE__), 'test_helper.rb')
 
 class RenderHTMLTest < Test::Unit::TestCase
+
+  def reference_output(filename)
+    IO.readlines(File.join(File.dirname(__FILE__), 'ref-output', filename)).join
+  end
   
-  def test_render_html
-    puts "\n\n\n"
-    x = MyInvoice.find(1).render_html do |i|
-      i.title_tag {|params| "<h1>#{params[:title_html]}</h1>\n" }
+  def test_render_default_html_invoice
+    File.open(File.join(File.dirname(__FILE__), 'ref-output', 'debug1.html'), 'w') do |f|
+      f.syswrite(MyInvoice.find(1).render_html)
     end
-    puts "#{x}\n\n\n"
+    assert_equal reference_output('invoice1.html'), MyInvoice.find(1).render_html
   end
   
 end

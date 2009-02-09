@@ -40,6 +40,7 @@ test/models/test_subclass_in_another_file.rb
 test/models/test_subclass_not_in_database.rb
 test/price_test.rb
 test/ref-output/creditnote3.xml
+test/ref-output/invoice1.html
 test/ref-output/invoice1.xml
 test/ref-output/invoice2.xml
 test/render_html_test.rb
