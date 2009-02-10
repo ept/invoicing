@@ -11,6 +11,12 @@ applications (particularly web apps) which need to generate invoices for
 customers. It builds on ActiveRecord and is particularly suited for Rails
 applications, but could be used with other frameworks too.
 
+News
+----
+
+{% for post in site.posts %}
+* [{{ post.title }}]({{ post.url }}) ({{ post.date | date_to_string }})
+{% endfor %}
 
 Dependencies
 ------------
