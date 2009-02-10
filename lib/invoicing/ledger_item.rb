@@ -351,12 +351,6 @@ module Invoicing
         }
         
         named_scope :exclude_empty_invoices, lambda{
-          # FIXME: This scope does not work in Postgres, where the query fails with the error:
-          # ERROR: column "ledger_item_records.type2" must appear in the GROUP BY clause or be used
-          # in an aggregate function
-          # (Postgres expects all columns selected by "#{quoted_table_name}.*" to appear in the
-          # GROUP BY clause)
-          
           line_items_assoc_id = info.method(:line_items).to_sym
           line_items_refl = reflections[line_items_assoc_id]
           line_items_table = line_items_refl.quoted_table_name
@@ -378,7 +372,8 @@ module Invoicing
           subquery = construct_finder_sql(
             :select => "#{quoted_table_name}.*, COUNT(#{line_items_id}) AS number_of_line_items",
             :joins => "LEFT JOIN #{line_items_table} ON #{ledger_item_foreign_key} = #{ledger_items_id}",
-            :group => "#{quoted_table_name}.#{connection.quote_column_name(primary_key)}")
+            :group => Invoicing::ConnectionAdapterExt.group_by_all_columns(self)
+          )
             
           {:from => "(#{subquery}) AS #{quoted_table_name}",
            :conditions => "number_of_line_items > 0 OR #{is_payment_class}"}
