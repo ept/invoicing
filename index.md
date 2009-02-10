@@ -28,13 +28,13 @@ Install
 
 {% highlight console %}
 $ sudo gem install invoicing
-{% endhighlight}
+{% endhighlight %}
 
 You can also clone the project with [Git](http://git-scm.com) by running:
 
 {% highlight console %}
 $ git clone git://github.com/ept/invoicing
-{% endhighlight}
+{% endhighlight %}
 
 Or [view the source code on GitHub](http://github.com/ept/invoicing).
 
