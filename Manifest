@@ -55,6 +55,3 @@ test/tax_rate_test.rb
 test/taxable_test.rb
 test/test_helper.rb
 test/time_dependent_test.rb
-website/curvycorners.js
-website/screen.css
-website/template.html.erb
