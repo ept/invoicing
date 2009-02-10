@@ -11,13 +11,15 @@ ActiveSupport::Dependencies.load_paths << File.join(File.dirname(__FILE__), 'mod
 
 require 'invoicing'
 
-ActiveRecord::Base.establish_connection(
-    :adapter  => "mysql",
-    :host     => "localhost",
-    :database => "invoicing_test",
-    :username => "root",
-    :password => ""
-)
+if ENV['DATABASE'] == 'postgresql'
+  db_connection = {:adapter => "postgresql", :host => "localhost", :database => "invoicing_test",
+    :username => "postgres", :password => ""}
+else
+  db_connection = {:adapter => "mysql", :host => "localhost", :database => "invoicing_test",
+    :username => "root", :password => ""}
+end
+
+ActiveRecord::Base.establish_connection(db_connection)
 
 ENV['TZ'] = 'Etc/UTC' # timezone of values in database
 ActiveRecord::Base.default_timezone = :utc # timezone of created_at and updated_at

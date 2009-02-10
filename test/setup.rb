@@ -10,15 +10,26 @@ Dir.glob(File.join(File.dirname(__FILE__), 'fixtures', '*.sql')) do |filename|
   
   command = ''
   file.each do |line|
-    unless line =~ /\A\s*--/ # ignore comments
-      if line =~ /(.*);\s*\Z/ # cut off semicolons at the end of a command
-        command += ' ' + $1
-        connection.execute command
-        puts command.strip
-        command = ''
-      else
-        command += ' ' + line.strip
-      end
+  
+    # Hacks to make fixture loading work with postgres. Very very ugly. Sorry :-(
+    if ActiveRecord::Base.connection.adapter_name == 'PostgreSQL'
+      line.gsub!(/datetime/, 'timestamp')
+      line.gsub!(/tinyint\(1\)/, 'boolean')
+      line.gsub!(/0(\).) \-\- false/, 'false\1')
+      line.gsub!(/1(\).) \-\- true/, 'true\1')
+      line.gsub!(/int primary key auto_increment/, 'serial')
+      line.gsub!(/ENGINE=.*;/, ';')
+    end
+    
+    line.gsub!(/\-\-.*/, '') # ignore comments
+    
+    if line =~ /(.*);\s*\Z/ # cut off semicolons at the end of a command
+      command += ' ' + $1
+      puts command.strip
+      connection.execute command
+      command = ''
+    else
+      command += ' ' + line.strip
     end
   end
 end
