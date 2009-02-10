@@ -26,13 +26,27 @@ ActiveRecord >= 2.1
 Install
 -------
 
-    $ sudo gem install invoicing
+{% highlight console %}
+$ sudo gem install invoicing
+{% endhighlight}
 
-You can also clone the project with Git(http://git-scm.com) by running:
+You can also clone the project with [Git](http://git-scm.com) by running:
 
-    $ git clone git://github.com/ept/invoicing
+{% highlight console %}
+$ git clone git://github.com/ept/invoicing
+{% endhighlight}
 
 Or [view the source code on GitHub](http://github.com/ept/invoicing).
+
+Usage
+-----
+
+{% highlight ruby %}
+class LedgerItem < ActiveRecord::Base
+  acts_as_ledger_item
+end
+{% endhighlight %}
+
 
 License
 -------
