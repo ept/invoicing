@@ -263,16 +263,27 @@ module Invoicing
   # documented in this module (instance methods) and <tt>Invoicing::LedgerItem::ClassMethods</tt>
   # (class methods), the following methods are generated dynamically:
   #
-  # +in_effect+:: Named scope which matches all closed invoices/credit notes (not open or cancelled)
-  #               and all cleared payments (not pending or failed). You probably want to use this
-  #               quite often, for all reporting purposes.
-  # +due_at+::    Named scope which takes a +DateTime+ argument and matches all ledger items whose
-  #               +due_date+ value is either +NULL+ or is not after the given time. For example,
-  #               you could run <tt>LedgerItem.due_at(Time.now).account_summaries</tt>
-  #               once a day and process payment for all accounts whose balance is not zero.
-  # +sorted+::    Named scope which takes a column name as documented above (even if it has been
-  #               renamed), and sorts the query by that column. If the column does not exist,
-  #               silently falls back to sorting by the primary key.
+  # +sent_by+::     Named scope which takes a person/company ID and matches all ledger items whose
+  #                 +sender_id+ matches that value.
+  # +received_by+:: Named scope which takes a person/company ID and matches all ledger items whose
+  #                 +recipient_id+ matches that value.
+  # +sent_or_received_by+:: Union of +sent_by+ and +received_by+.
+  # +in_effect+::   Named scope which matches all closed invoices/credit notes (not open or cancelled)
+  #                 and all cleared payments (not pending or failed). You probably want to use this
+  #                 quite often, for all reporting purposes.
+  # +open_or_pending+::     Named scope which matches all open invoices/credit notes and all pending
+  #                         payments.
+  # +due_at+::      Named scope which takes a +DateTime+ argument and matches all ledger items whose
+  #                 +due_date+ value is either +NULL+ or is not after the given time. For example,
+  #                 you could run <tt>LedgerItem.due_at(Time.now).account_summaries</tt>
+  #                 once a day and process payment for all accounts whose balance is not zero.
+  # +sorted+::      Named scope which takes a column name as documented above (even if it has been
+  #                 renamed), and sorts the query by that column. If the column does not exist,
+  #                 silently falls back to sorting by the primary key.
+  # +exclude_empty_invoices+:: Named scope which excludes any invoices or credit notes which do not
+  #                            have any associated line items (payments without line items are
+  #                            included though). If you're chaining scopes it would be advantageous
+  #                            to put this one close to the beginning of your scope chain.
   module LedgerItem
     
     module ActMethods
@@ -293,35 +304,80 @@ module Invoicing
         Invoicing::ClassInfo.acts_as(Invoicing::LedgerItem, self, args)
         
         info = ledger_item_class_info
-        if info.previous_info.nil? # Called for the first time?
-          before_validation :calculate_total_amount
+        return unless info.previous_info.nil? # Called for the first time?
+        
+        before_validation :calculate_total_amount
+        
+        # Set the 'amount' columns to act as currency values
+        acts_as_currency_value(info.method(:total_amount), info.method(:tax_amount),
+          :currency => info.method(:currency))
+        
+        extend Invoicing::FindSubclasses
+        include Invoicing::LedgerItem::RenderHTML
+        include Invoicing::LedgerItem::RenderUBL
+        
+        # Dynamically created named scopes
+        named_scope :sent_by, lambda{ |sender_id|
+          { :conditions => {info.method(:sender_id) => sender_id} }
+        }
+        
+        named_scope :received_by, lambda{ |recipient_id|
+          { :conditions => {info.method(:recipient_id) => recipient_id} }
+        }
+        
+        named_scope :sent_or_received_by, lambda{ |sender_or_recipient_id|
+          sender_col = connection.quote_column_name(info.method(:sender_id))
+          recipient_col = connection.quote_column_name(info.method(:recipient_id))
+          { :conditions => ["#{sender_col} = ? OR #{recipient_col} = ?",
+                            sender_or_recipient_id, sender_or_recipient_id] }
+        }
+        
+        named_scope :in_effect, :conditions => {info.method(:status) => ['closed', 'cleared']}
+        
+        named_scope :open_or_pending, :conditions => {info.method(:status) => ['open', 'pending']}
+        
+        named_scope :due_at, lambda{ |date|
+          due_date = connection.quote_column_name(info.method(:due_date))
+          {:conditions => ["#{due_date} <= ? OR #{due_date} IS NULL", date]}
+        }
+        
+        named_scope :sorted, lambda{|column|
+          column = ledger_item_class_info.method(column).to_s
+          if column_names.include?(column)
+            {:order => "#{connection.quote_column_name(column)}, #{connection.quote_column_name(primary_key)}"}
+          else
+            {:order => connection.quote_column_name(primary_key)}
+          end
+        }
+        
+        named_scope :exclude_empty_invoices, lambda{
+          line_items_assoc_id = info.method(:line_items).to_sym
+          line_items_refl = reflections[line_items_assoc_id]
+          line_items_table = line_items_refl.quoted_table_name
           
-          # Set the 'amount' columns to act as currency values
-          acts_as_currency_value(info.method(:total_amount), info.method(:tax_amount),
-            :currency => info.method(:currency))
+          # e.g. `ledger_items`.`id`
+          ledger_items_id = quoted_table_name + "." + connection.quote_column_name(primary_key)
           
-          extend Invoicing::FindSubclasses
-          include Invoicing::LedgerItem::RenderHTML
-          include Invoicing::LedgerItem::RenderUBL
+          # e.g. `line_items`.`id`
+          line_items_id = line_items_table + "." +
+            connection.quote_column_name(line_items_refl.klass.primary_key)
           
-          # Dynamically created named scopes
-          named_scope :in_effect, :conditions => {info.method(:status) => ['closed', 'cleared']}
+          # e.g. `line_items`.`ledger_item_id`
+          ledger_item_foreign_key = line_items_table + "." + connection.quote_column_name(
+            line_items_refl.klass.send(:line_item_class_info).method(:ledger_item_id))
           
-          named_scope :due_at, lambda{ |date|
-            due_date = connection.quote_column_name(info.method(:due_date))
-            {:conditions => ["#{due_date} <= ? OR #{due_date} IS NULL", date]}
-          }
+          payment_classes = select_matching_subclasses(:is_payment, true).map{|c| c.name}
+          is_payment_class = merge_conditions({info.method(:type) => payment_classes})
           
-          named_scope :sorted, lambda{|column|
-            column = ledger_item_class_info.method(column).to_s
-            if column_names.include?(column)
-              {:order => "#{connection.quote_column_name(column)}, #{connection.quote_column_name(primary_key)}"}
-            else
-              {:order => connection.quote_column_name(primary_key)}
-            end
-          }
-        end
-      end
+          subquery = construct_finder_sql(
+            :select => "#{quoted_table_name}.*, COUNT(#{line_items_id}) AS number_of_line_items",
+            :joins => "LEFT JOIN #{line_items_table} ON #{ledger_item_foreign_key} = #{ledger_items_id}",
+            :group => "#{quoted_table_name}.#{connection.quote_column_name(primary_key)}")
+            
+          {:from => "(#{subquery}) AS #{quoted_table_name}",
+           :conditions => "number_of_line_items > 0 OR #{is_payment_class}"}
+        }
+      end # def acts_as_ledger_item
       
       # Synonym for <tt>acts_as_ledger_item :subtype => :invoice</tt>. All options other than
       # <tt>:subtype</tt> are passed on to +acts_as_ledger_item+. You should apply
@@ -504,6 +560,21 @@ module Invoicing
           when :payment     then false
           else nil
         end
+      end
+      
+      # Returns +true+ if this type of ledger item is a +invoice+ subtype, and +false+ otherwise.
+      def is_invoice
+        ledger_item_class_info.subtype == :invoice
+      end
+      
+      # Returns +true+ if this type of ledger item is a +credit_note+ subtype, and +false+ otherwise.
+      def is_credit_note
+        ledger_item_class_info.subtype == :credit_note
+      end
+      
+      # Returns +true+ if this type of ledger item is a +payment+ subtype, and +false+ otherwise.
+      def is_payment
+        ledger_item_class_info.subtype == :payment
       end
       
       # Returns a summary of the customer or supplier account between two parties identified
