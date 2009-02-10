@@ -11,15 +11,19 @@ ActiveSupport::Dependencies.load_paths << File.join(File.dirname(__FILE__), 'mod
 
 require 'invoicing'
 
-if ENV['DATABASE'] == 'postgresql'
-  db_connection = {:adapter => "postgresql", :host => "localhost", :database => "invoicing_test",
-    :username => "postgres", :password => ""}
-else
-  db_connection = {:adapter => "mysql", :host => "localhost", :database => "invoicing_test",
-    :username => "root", :password => ""}
+TEST_DB_CONFIG = {
+  :postgresql => {:adapter => "postgresql", :host => "localhost", :database => "invoicing_test",
+    :username => "postgres", :password => ""},
+  :mysql => {:adapter => "mysql", :host => "localhost", :database => "invoicing_test",
+    :username => "root", :password => ""},
+  :sqlite3 => {:adapter => "sqlite3", :database => Tempfile.new('invoicing_sqlite').path}
+}
+
+def connect_to_testing_database
+  ActiveRecord::Base.establish_connection(TEST_DB_CONFIG[(ENV['DATABASE'] || :mysql).to_sym])
 end
 
-ActiveRecord::Base.establish_connection(db_connection)
+connect_to_testing_database
 
 ENV['TZ'] = 'Etc/UTC' # timezone of values in database
 ActiveRecord::Base.default_timezone = :utc # timezone of created_at and updated_at

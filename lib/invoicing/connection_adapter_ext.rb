@@ -12,7 +12,7 @@ module Invoicing
         when "PostgreSQL"
           "CASE WHEN #{condition} THEN #{value_if_true} ELSE #{value_if_false} END"
         else
-          raise "Database adapter #{connection.adapter_name} not supported by invoicing gem"
+          raise "Database adapter #{ActiveRecord::Base.connection.adapter_name} not supported by invoicing gem"
       end
     end
   end
