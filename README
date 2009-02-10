@@ -23,6 +23,12 @@ h2. SYNOPSIS
 require 'invoicing'
 </pre>
 
+h2. STATUS
+
+So far, the Ruby Invoicing Framework has been tested with ActiveRecord 2.2.2,
+MySQL 5.0.67 and PostgreSQL 8.3.5. We will be testing it across a wider
+variety of versions soon.
+
 h2. CREDITS
 
 The Ruby invoicing framework originated as part of the website Bid for Wine
