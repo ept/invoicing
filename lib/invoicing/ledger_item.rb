@@ -351,6 +351,12 @@ module Invoicing
         }
         
         named_scope :exclude_empty_invoices, lambda{
+          # FIXME: This scope does not work in Postgres, where the query fails with the error:
+          # ERROR: column "ledger_item_records.type2" must appear in the GROUP BY clause or be used
+          # in an aggregate function
+          # (Postgres expects all columns selected by "#{quoted_table_name}.*" to appear in the
+          # GROUP BY clause)
+          
           line_items_assoc_id = info.method(:line_items).to_sym
           line_items_refl = reflections[line_items_assoc_id]
           line_items_table = line_items_refl.quoted_table_name
@@ -625,6 +631,7 @@ module Invoicing
       #
       def account_summaries(self_id)
         info = ledger_item_class_info
+        ext = Invoicing::ConnectionAdapterExt
         scope = scope(:find)
         
         debit_classes  = select_matching_subclasses(:debit_when_sent_by_self, true,  self.table_name, self.inheritance_column).map{|c| c.name}
@@ -641,18 +648,19 @@ module Invoicing
         
         sender_is_self    = merge_conditions({info.method(:sender_id)    => self_id})
         recipient_is_self = merge_conditions({info.method(:recipient_id) => self_id})
-        other_id_column = "IF(#{sender_is_self}, #{cols[:recipient_id]}, #{cols[:sender_id]})"
+        other_id_column = ext.conditional_function(sender_is_self, cols[:recipient_id], cols[:sender_id])
         filter_conditions = "#{cols[:status]} IN ('closed','cleared') AND (#{sender_is_self} OR #{recipient_is_self})"
         
-        # Structure borrowed from ActiveRecord::Base.construct_finder_sql
+        
 
         sql = "SELECT #{other_id_column} AS other_id, #{cols[:currency]} AS currency, " + 
-          "SUM(IF(#{debit_when_sent     }, #{cols[:total_amount]}, 0)) AS sales, " +
-          "SUM(IF(#{debit_when_received }, #{cols[:total_amount]}, 0)) AS purchase_payments, " +
-          "SUM(IF(#{credit_when_sent    }, #{cols[:total_amount]}, 0)) AS sale_receipts, " +
-          "SUM(IF(#{credit_when_received}, #{cols[:total_amount]}, 0)) AS purchases " +
+          "SUM(#{ext.conditional_function(debit_when_sent,      cols[:total_amount], 0)}) AS sales, " +
+          "SUM(#{ext.conditional_function(debit_when_received,  cols[:total_amount], 0)}) AS purchase_payments, " +
+          "SUM(#{ext.conditional_function(credit_when_sent,     cols[:total_amount], 0)}) AS sale_receipts, " +
+          "SUM(#{ext.conditional_function(credit_when_received, cols[:total_amount], 0)}) AS purchases " +
           "FROM #{(scope && scope[:from]) || quoted_table_name} "
         
+        # Structure borrowed from ActiveRecord::Base.construct_finder_sql
         add_joins!(sql, nil, scope)
         add_conditions!(sql, filter_conditions, scope)
         

@@ -10,3 +10,5 @@ CREATE TABLE taxable_records (
 
 INSERT INTO taxable_records(id, currency_code, amount, gross_amount, tax_factor) values
     (1, 'GBP', 123.45, 141.09, 0.142857143);
+
+ALTER SEQUENCE taxable_records_id_seq start 1000;

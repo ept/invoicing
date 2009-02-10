@@ -17,8 +17,10 @@ Dir.glob(File.join(File.dirname(__FILE__), 'fixtures', '*.sql')) do |filename|
       line.gsub!(/tinyint\(1\)/, 'boolean')
       line.gsub!(/0(\).) \-\- false/, 'false\1')
       line.gsub!(/1(\).) \-\- true/, 'true\1')
-      line.gsub!(/int primary key auto_increment/, 'serial')
+      line.gsub!(/int primary key auto_increment/, 'serial primary key')
       line.gsub!(/ENGINE=.*;/, ';')
+    else
+      line.gsub!(/ALTER SEQUENCE .*/, '')
     end
     
     line.gsub!(/\-\-.*/, '') # ignore comments

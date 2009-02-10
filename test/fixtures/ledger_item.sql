@@ -35,3 +35,5 @@ INSERT INTO ledger_item_records
     (11,'MyInvoice',                  1, 2,             'no_lines',  '2009-01-24', 'GBP',              NULL,        NULL, 'closed',    '2009-01-23',  '2009-01-24', '9ed54a00-d99f-012b-592c-0017f22d32c0', '2009-01-25', '2009-01-24 23:59:59', '2009-01-24 23:59:59');
 
 -- Invoice 10 is set to not add up correctly; total_amount is 0.01 too little to test error handling
+
+ALTER SEQUENCE ledger_item_records_id2_seq start 1000;

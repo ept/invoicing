@@ -1,6 +1,7 @@
 CHANGELOG
 lib/invoicing/cached_record.rb
 lib/invoicing/class_info.rb
+lib/invoicing/connection_adapter_ext.rb
 lib/invoicing/countries/uk.rb
 lib/invoicing/currency_value.rb
 lib/invoicing/find_subclasses.rb
