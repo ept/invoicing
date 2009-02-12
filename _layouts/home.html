@@ -10,19 +10,36 @@
 
 <body>
     <a href="http://github.com/ept/invoicing"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" /></a>
-  
+
+    <div style="float: right; padding: 135px 20px 20px;">
+    <script language="javascript">
+        var jtw_divname = 'twitterwidget';
+        var jtw_search = 'invoicing ruby OR gem OR rubygem OR github OR invgem';
+        var jtw_width = '240px';
+        var jtw_height = '350px';
+        var jtw_widget_refresh_interval = 600;
+        var jtw_pre_html = 'Tag your tweets with #invgem';
+        var jtw_num_tweets = 20;
+        var jtw_tweet_margin = '3px';
+        var jtw_tweet_fontsize = '0.8em';
+    </script>
+    <script src="http://tweetgrid.com/widget/widget.js" type="text/javascript"></script>
+    </div>
+
     <div id="container">
     {{ content }}
     </div>
 
-<script type="text/javascript">
-var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
-document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
-</script>
-<script type="text/javascript">
-try {
-var pageTracker = _gat._getTracker("UA-7416738-1");
-pageTracker._trackPageview();
-} catch(err) {}</script>
+    <script type="text/javascript">
+        var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+        document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+    </script>
+    <script type="text/javascript">
+        try {
+            var pageTracker = _gat._getTracker("UA-7416738-1");
+            pageTracker._trackPageview();
+        } catch(err) {}
+    </script>
+
 </body>
 </html>
