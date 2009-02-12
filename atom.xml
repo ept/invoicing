@@ -4,7 +4,7 @@ layout: nil
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
     <title>Ruby Invoicing Framework</title>
-    <link href="http://ept.github.com/invoicing/atom.xml" rel="self"/>
+    <link href="http://feeds2.feedburner.com/invoicing" rel="self"/>
     <link href="http://ept.github.com/invoicing/"/>
     <updated>{{ site.time | date_to_xmlschema }}</updated>
     <id>http://ept.github.com/invoicing/</id>
