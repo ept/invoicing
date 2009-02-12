@@ -23,3 +23,8 @@ class LedgerItem < ActiveRecord::Base
   acts_as_ledger_item
 end
 {% endhighlight %}
+
+Dependencies
+------------
+
+ActiveRecord >= 2.1
