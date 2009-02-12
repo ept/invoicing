@@ -48,7 +48,7 @@ this:
 {% highlight ruby %}
 Customers.all.each do |customer|
   invoice = Invoice.new(
-    :customer_id => customer.id,
+    :recipient_id => customer.id,
     :currency => customer.price_plan.currency,
     :status => 'closed',
     :period_start => Time.now,
