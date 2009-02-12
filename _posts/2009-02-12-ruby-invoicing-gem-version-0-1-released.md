@@ -47,7 +47,7 @@ I found just plain confusing.
 After learning the basics of accounting, I still find it dead boring. And that is
 really the reason why I took the Bid for Wine code in January 2009 and started
 extracting a general-purpose finance handling framework out of it: I wanted to find
-a neat representation of the data, one which made both me as a develoepr happy and 
+a neat representation of the data, one which made both me as a developer happy and 
 also satisfied the accountants; and I wanted to package it up so that I wouldn't
 have to think about the financial stuff any more than necessary: I wanted to make it
 go away, not by ignoring it, but by automating it as much as possible, and by
