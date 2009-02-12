@@ -21,8 +21,9 @@ things like tax and you need to pay an accountant to sort out the paperwork for 
 You need to start bookkeeping, a prospect which gives you the shivers. Maybe some of
 your customers are awkward, accepting billing only in their own currency or requiring
 a special tax status. It's all a bit of a mess, and as you grudgingly start
-ploughing through the Wikipedia page on "credits and debits", you wish that you
-could just get the money and leave it at that.
+ploughing through the Wikipedia page on 
+["credits and debits"](http://en.wikipedia.org/wiki/Debits_and_credits), you wish that
+you could just get the money and leave it at that.
 
 
 The missing link between your app and the money
