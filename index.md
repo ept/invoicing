@@ -63,10 +63,22 @@ What the invoicing gem is not
   bookkeeping software, because they augment each other perfectly. If you can help
   us by connecting the invoicing gem to your accounting package of choice, please
   let us know.
+* It does not currently implement any particular payment providers' APIs, although
+  that's something we want to do eventually. At the moment, our focus is more on
+  calculating things like tax, and providing a solid layer on which you can build
+  your business logic.
 
 
 Getting started
 ---------------
+
+Sounds intriguing? Here's more:
+* [Overview of the invoicing gem's main features](overview.html)
+* [Getting started guide for using the invoicing gem in your application](getting_started.html)
+
+Once you've familiarised yourself with the basics, you might want to start
+[browsing the API documentation](http://invoicing.rubyforge.org/doc/) --
+everything is documented very thoroughly there.
 
 "I predict that @martinkl's "invoicing" gem will be considered essential when
 it hits 1.0." -- @bensummers
@@ -78,14 +90,13 @@ News
 * [{{ post.title }}](/invoicing{{ post.url }}) ({{ post.date | date_to_string }})
 {% endfor %}
 
+[Subscribe to our feed](http://feeds2.feedburner.com/invoicing) to keep up-to-date
+with invoicing gem news!
 
-License
--------
 
-MIT License
+Copyright
+---------
 
-Author
-------
-
-[Martin Kleppmann](http://github.com/ept)
-
+The Ruby Invoicing Framework is developed by [Martin Kleppmann](http://www.yes-no-cancel.co.uk),
+and development is sponsored by [Ept Computing](http://www.eptcomputing.com). It is
+released under the terms of the MIT License.
