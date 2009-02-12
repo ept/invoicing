@@ -80,8 +80,9 @@ Once you've familiarised yourself with the basics, you might want to start
 [browsing the API documentation](http://invoicing.rubyforge.org/doc/) --
 everything is documented very thoroughly there.
 
-"I predict that @martinkl's "invoicing" gem will be considered essential when
-it hits 1.0." -- @bensummers
+> 'I predict [@martinkl](http://twitter.com/martinkl)'s "invoicing" Ruby on Rails
+> gem will be considered essential when it hits 1.0.' --
+> [@bensummers](http://twitter.com/bensummers/status/1199722134)
 
 News
 ----
