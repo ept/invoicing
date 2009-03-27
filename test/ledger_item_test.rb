@@ -249,6 +249,18 @@ class LedgerItemTest < Test::Unit::TestCase
       ActiveRecord::Base.connection.select_all("SELECT total_amount2, tax_amount2 FROM ledger_item_records WHERE id2=9"))
   end
   
+  def test_calculate_total_amount_for_updated_line_item
+    # This might occur while an invoice is still open
+    invoice = MyInvoice.find(9)
+    invoice.line_items2[0].net_amount2 = '20'
+    invoice.line_items2[0].tax_amount2 = 3
+    invoice.save!
+    assert_equal([{'total_amount2' => '23.0000', 'tax_amount2' => '3.0000'}],
+      ActiveRecord::Base.connection.select_all("SELECT total_amount2, tax_amount2 FROM ledger_item_records WHERE id2=9"))
+    assert_equal BigDecimal('23'), invoice.total_amount2
+    assert_equal BigDecimal('3'), invoice.tax_amount2
+  end
+  
   def test_line_items_error
     assert_raise RuntimeError do
       MyInvoice.find(1).line_items # not line_items2
