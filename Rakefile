@@ -16,7 +16,7 @@ $hoe = Hoe.new('invoicing', Invoicing::VERSION) do |p|
     ['newgem', ">= #{::Newgem::VERSION}"]
   ]
 
-  p.test_globs = 'test/*_test.rb' # do not include test/models/*.rb
+  p.test_globs = %w[test/*_test.rb test/generators/*_test.rb] # do not include test/models/*.rb
   p.clean_globs |= %w[**/.DS_Store tmp *.log]
   p.rsync_args = '-av --delete --ignore-errors'
   #p.rcov_options = "-x '/Library/'"
