@@ -1,0 +1,7 @@
+
+Thanks for trying the Ruby Invoicing Gem. Hope you find it useful.
+Do please blog and tweet about it (tag your posts with #invgem).
+
+For more information please see http://ept.github.com/invoicing/
+
+

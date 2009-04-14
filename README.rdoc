@@ -20,6 +20,19 @@ Please see {the website}[http://ept.github.com/invoicing/] for an introduction
 to using Invoicing, and check the
 {API reference}[http://invoicing.rubyforge.org/doc/] for in-depth details.
 
+== FEATURES
+
+* TODO
+
+== REQUIREMENTS
+
+* ActiveRecord >= 2.1
+* Only MySQL and PostgreSQL databases are currently supported
+
+== INSTALL
+
+sudo gem install invoicing
+
 == STATUS
 
 So far, the Ruby Invoicing Framework has been tested with ActiveRecord 2.2.2,

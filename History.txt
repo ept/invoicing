@@ -1,0 +1,10 @@
+== 0.1.0 2009-02-10
+
+* 2 major enhancements:
+  * Core API is now usable
+  * RCov reports 100% test coverage
+
+== 0.0.1 2009-01-05
+
+* 1 major enhancement:
+  * Initial public release
