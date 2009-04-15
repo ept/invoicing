@@ -1,6 +1,14 @@
 %w[rubygems rake rake/clean fileutils newgem rubigen].each { |f| require f }
 require File.dirname(__FILE__) + '/lib/invoicing'
 
+# Hoe calls Ruby with the "-w" set by default; unfortunately, ActiveRecord (at version 2.2.2
+# at least) causes a lot of warnings internally, by no fault of our own, which clutters
+# the output. Comment out the following four lines to see those warnings.
+class Hoe
+  RUBY_FLAGS = ENV['RUBY_FLAGS'] || "-I#{%w(lib test).join(File::PATH_SEPARATOR)}" +
+      (RUBY_DEBUG ? " #{RUBY_DEBUG}" : '')
+end
+
 # Generate all the Rake tasks
 # Run 'rake -T' to see list of generated tasks (from gem root directory)
 $hoe = Hoe.new('invoicing', Invoicing::VERSION) do |p|
