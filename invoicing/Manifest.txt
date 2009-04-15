@@ -20,8 +20,6 @@ lib/invoicing/tax_rate.rb
 lib/invoicing/taxable.rb
 lib/invoicing/time_dependent.rb
 lib/invoicing/version.rb
-rails_generators/invoicing/USAGE
-rails_generators/invoicing/invoicing_generator.rb
 script/console
 script/destroy
 script/generate
@@ -41,8 +39,6 @@ test/fixtures/price.sql
 test/fixtures/tax_rate.sql
 test/fixtures/taxable.sql
 test/fixtures/time_dependent.sql
-test/generators/invoicing_generator_test.rb
-test/generators/test_generator_helper.rb
 test/ledger_item_test.rb
 test/line_item_test.rb
 test/models/README

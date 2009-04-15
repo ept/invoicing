@@ -1,0 +1,15 @@
+History.txt
+LICENSE
+Manifest.txt
+PostInstall.txt
+README.rdoc
+Rakefile
+lib/invoicing_generator.rb
+rails_generators/invoicing/USAGE
+rails_generators/invoicing/invoicing_generator.rb
+script/console
+script/destroy
+script/generate
+test/test_generator_helper.rb
+test/test_helper.rb
+test/test_invoicing_generator.rb
