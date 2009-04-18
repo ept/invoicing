@@ -262,6 +262,7 @@ module Invoicing
         end
         
         def default_address(details)
+          details = details.symbolize_keys
           html =  "#{indent*3}<div class=\"fn org\">#{       h(details[:name])        }</div>\n"
           html << "#{indent*3}<div class=\"contact\">#{      h(details[:contact_name])}</div>\n"        unless details[:contact_name].blank?
           html << "#{indent*3}<div class=\"adr\">\n"
@@ -282,12 +283,12 @@ module Invoicing
         end
         
         def default_sender_tax_number(params)
-          sender_tax_number = get(:sender_details)[:tax_number]
+          sender_tax_number = get(:sender_details).symbolize_keys[:tax_number]
           "#{params[:tax_number_label]}<span class=\"tax-number\">#{h(sender_tax_number)}</span>"
         end
         
         def default_recipient_tax_number(params)
-          recipient_tax_number = get(:recipient_details)[:tax_number]
+          recipient_tax_number = get(:recipient_details).symbolize_keys[:tax_number]
           "#{params[:tax_number_label]}<span class=\"tax-number\">#{h(recipient_tax_number)}</span>"
         end
         

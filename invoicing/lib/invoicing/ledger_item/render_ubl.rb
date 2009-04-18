@@ -56,10 +56,10 @@ module Invoicing
             if [:invoice, :credit_note].include? subtype
               if total_amount >= BigDecimal('0')
                 @factor = BigDecimal('1')
-                sender_details[:is_self] ? :Invoice : :SelfBilledInvoice
+                sender_details.symbolize_keys[:is_self] ? :Invoice : :SelfBilledInvoice
               else
                 @factor = BigDecimal('-1')
-                sender_details[:is_self] ? :CreditNote : :SelfBilledCreditNote
+                sender_details.symbolize_keys[:is_self] ? :CreditNote : :SelfBilledCreditNote
               end
             else
               raise RuntimeError, "render_ubl not implemented for ledger item subtype #{subtype.inspect}"
@@ -198,6 +198,7 @@ module Invoicing
         #       </cac:PostalAddress>
         #   </cac:Party>
         def build_party(xml, details)
+          details = details.symbolize_keys
           xml.cac :Party do |party|
             party.cac :PartyName do |party_name|
               party_name.cbc :Name, details[:name]
