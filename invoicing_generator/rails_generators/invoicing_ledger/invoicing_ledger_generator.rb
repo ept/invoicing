@@ -44,7 +44,7 @@ class InvoicingLedgerGenerator < Rails::Generator::NamedBase
         m.directory File.dirname(details[:file_path_full])
         
         # Create classes
-        m.nested_class_template "#{key}.rb", details
+        m.nested_class_template "#{key}.rb", details, :assigns => { :name_details => name_details }
       end
       
       # Migration
@@ -77,5 +77,13 @@ EOS
         :creator => "create a creator_id column for line items",
         :timestamps => "create created_at/updated_at columns"
       }
+    end
+    
+    def add_options!(opt)
+      super
+      opt.separator ''
+      opt.on "--currency=CODE", "set a default currency (3-letter code, e.g. USD or GBP)" do |currency|
+        options[:currency] = currency.nil? ? nil : currency.upcase
+      end
     end
 end

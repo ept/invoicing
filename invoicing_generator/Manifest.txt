@@ -17,7 +17,6 @@ rails_generators/invoicing_ledger/templates/invoice.rb
 rails_generators/invoicing_ledger/templates/ledger_item.rb
 rails_generators/invoicing_ledger/templates/line_item.rb
 rails_generators/invoicing_ledger/templates/migration.rb
-rails_generators/invoicing_ledger/templates/nested_class.rb
 rails_generators/invoicing_ledger/templates/payment.rb
 script/console
 script/destroy

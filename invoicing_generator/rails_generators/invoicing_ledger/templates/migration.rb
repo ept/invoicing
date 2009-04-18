@@ -6,7 +6,7 @@ class CreateInvoicingLedger < ActiveRecord::Migration
       t.integer :recipient_id
       t.string :identifier, :limit => 50
       t.datetime :issue_date
-      t.string :currency, :limit => 3, :null => false
+      t.string :currency, :limit => 3, :null => false<%= options[:currency] ? ", :default => '#{options[:currency]}'" : '' %>
       t.decimal :total_amount, :precision => 20, :scale => 4
       t.decimal :tax_amount, :precision => 20, :scale => 4
       t.string :status, :limit => 20
@@ -55,7 +55,7 @@ class CreateInvoicingLedger < ActiveRecord::Migration
   end 
 
   def self.down
-    drop_table :line_items
-    drop_table :ledger_items
+    drop_table :<%= name_details[:line_item][:underscore_plural] %>
+    drop_table :<%= name_details[:ledger_item][:underscore_plural] %>
   end
 end
