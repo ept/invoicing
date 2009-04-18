@@ -9,6 +9,10 @@ end
 
 require 'invoicing'
 
+require 'invoicing_generator/generator_extensions'
+require 'invoicing_generator/name_tools'
+require 'invoicing_generator/option_tools'
+
 module InvoicingGenerator
   VERSION = Invoicing::VERSION
 end

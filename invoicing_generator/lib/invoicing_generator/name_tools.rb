@@ -8,7 +8,7 @@ module InvoicingGenerator
   
     # Analyses a name provided by the user on the command line, and returns a hash
     # of useful bits of string based on that name:
-    #   extract_name_details 'MegaBlurb/foo/BAR_BLOBS', :kind => :controller
+    #   extract_name_details 'MegaBlurb/foo/BAR_BLOBS', :kind => :controller, :extension => '.rb'
     #   => {
     #        :underscore_base     => 'bar_blobs',           # last part of the name, underscored
     #        :camel_base          => 'BarBlobs',            # last part of the name, camelized
@@ -23,10 +23,10 @@ module InvoicingGenerator
     #        :nesting_depth       => 2,                     # length of class_path array
     #
     #        # The following depend on the given :kind
-    #        :file_path_base      => 'bar_blobs_controller'                 # based on underscore_*
-    #        :file_path_full      => 'mega_blurb/foo/bar_blobs_controller', # full file path
-    #        :class_name_base     => 'BarBlobsController',                  # file_path_base.camelize
-    #        :class_name_full     => 'MegaBlurb::Foo::BarBlobsController',  # = class_nesting + class_name_base
+    #        :file_path_base      => 'bar_blobs_controller.rb'                 # based on underscore_*
+    #        :file_path_full      => 'app/controllers/mega_blurb/foo/bar_blobs_controller.rb', # full file path
+    #        :class_name_base     => 'BarBlobsController',                     # file_path_base.camelize
+    #        :class_name_full     => 'MegaBlurb::Foo::BarBlobsController',     # = class_nesting + class_name_base
     #      }
     #
     # Recognised options:
@@ -54,19 +54,22 @@ module InvoicingGenerator
       
       if options[:kind] == :controller
         result[:file_path_base] = "#{result[:underscore_base]}_controller"
+        path_prefix = File.join('app', 'controllers')
       elsif options[:kind] == :model
         result[:file_path_base] = result[:underscore_singular]
+        path_prefix = File.join('app', 'models')
       else
         raise 'unknown kind of name'
       end
       
       result[:class_name_base] = result[:file_path_base].camelize
+      result[:file_path_base] << (options[:extension] || ".rb")
       
       if result[:nesting_depth] == 0
-        result[:file_path_full] = result[:file_path_base]
+        result[:file_path_full] = File.join(path_prefix, result[:file_path_base])
         result[:class_name_full] = result[:class_name_base]
       else
-        result[:file_path_full] = File.join(result[:class_path], result[:file_path_base])
+        result[:file_path_full] = File.join(path_prefix, result[:class_path], result[:file_path_base])
         result[:class_name_full] = "#{result[:class_nesting]}::#{result[:class_name_base]}"
       end
     
