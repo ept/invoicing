@@ -49,6 +49,9 @@ class InvoicingLedgerGenerator < Rails::Generator::NamedBase
       
       # Migration
       m.migration_template 'migration.rb', 'db/migrate', :migration_file_name => 'create_invoicing_ledger'
+      
+      # Initializer
+      m.file 'initializer.rb', 'config/initializers/invoicing.rb'
     end
   end
 
