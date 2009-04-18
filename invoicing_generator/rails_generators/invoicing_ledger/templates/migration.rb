@@ -1,9 +1,9 @@
 class CreateInvoicingLedger < ActiveRecord::Migration
   def self.up
-    create_table :ledger_items do |t|
+    create_table :<%= name_details[:ledger_item][:underscore_plural] %> do |t|
       t.string :type
-      t.reference :sender_id
-      t.reference :recipient_id
+      t.integer :sender_id
+      t.integer :recipient_id
       t.string :identifier, :limit => 50
       t.datetime :issue_date
       t.string :currency, :limit => 3, :null => false
@@ -28,9 +28,9 @@ class CreateInvoicingLedger < ActiveRecord::Migration
 <% end -%>
     end
     
-    create_table :line_items do |t|
+    create_table :<%= name_details[:line_item][:underscore_plural] %> do |t|
       t.string :type
-      t.reference :ledger_item_id
+      t.references :<%= name_details[:ledger_item][:underscore_singular] %>
       t.decimal :net_amount, :precision => 20, :scale => 4
       t.decimal :tax_amount, :precision => 20, :scale => 4
 <% if options[:description] -%>
@@ -46,7 +46,7 @@ class CreateInvoicingLedger < ActiveRecord::Migration
       t.decimal :quantity, :precision => 20, :scale => 4
 <% end -%>
 <% if options[:creator] -%>
-      t.reference :creator_id
+      t.integer :creator_id
 <% end -%>
 <% if options[:timestamps] -%>
       t.timestamps

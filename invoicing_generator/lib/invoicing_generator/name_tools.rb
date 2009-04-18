@@ -63,7 +63,7 @@ module InvoicingGenerator
       end
       
       result[:class_name_base] = result[:file_path_base].camelize
-      result[:file_path_base] << (options[:extension] || ".rb")
+      result[:file_path_base] += (options[:extension] || ".rb")
       
       if result[:nesting_depth] == 0
         result[:file_path_full] = File.join(path_prefix, result[:file_path_base])
