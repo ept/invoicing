@@ -1,1 +1,1 @@
-acts_as_ledger_item :subtype => :invoice
+acts_as_invoice

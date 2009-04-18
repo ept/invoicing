@@ -1,1 +1,1 @@
-acts_as_ledger_item :subtype => :credit_note
+acts_as_credit_note

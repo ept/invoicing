@@ -4,12 +4,14 @@ class CreateInvoicingLedger < ActiveRecord::Migration
       t.string :type
       t.integer :sender_id
       t.integer :recipient_id
-      t.string :identifier, :limit => 50
       t.datetime :issue_date
       t.string :currency, :limit => 3, :null => false<%= options[:currency] ? ", :default => '#{options[:currency]}'" : '' %>
       t.decimal :total_amount, :precision => 20, :scale => 4
       t.decimal :tax_amount, :precision => 20, :scale => 4
       t.string :status, :limit => 20
+<% if options[:identifier] -%>
+      t.string :identifier, :limit => 50
+<% end -%>
 <% if options[:description] -%>
       t.string :description
 <% end -%>

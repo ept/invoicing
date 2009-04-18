@@ -1,1 +1,1 @@
-acts_as_ledger_item :subtype => :payment
+acts_as_payment

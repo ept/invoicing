@@ -6,8 +6,9 @@ class InvoicingLedgerGenerator < Rails::Generator::NamedBase
   include InvoicingGenerator::NameTools
   include InvoicingGenerator::OptionTools
 
-  default_options :description => true, :period => true, :uuid => true, :due_date => true, 
-    :tax_point => true, :quantity => true, :creator => true, :timestamps => true, :debug => false
+  default_options :description => true, :period => true, :uuid => true, :due_date => true,
+    :tax_point => true, :quantity => true, :creator => true, :identifier => false,
+    :timestamps => true, :debug => false
 
   attr_reader :name_details
 
@@ -75,6 +76,7 @@ EOS
         :tax_point => "create a tax_point column for line items",
         :quantity => "create a quantity column for line items",
         :creator => "create a creator_id column for line items",
+        :identifier => "create an identifier column for ledger items",
         :timestamps => "create created_at/updated_at columns"
       }
     end
