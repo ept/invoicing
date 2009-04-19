@@ -1,0 +1,36 @@
+<h1 class="statement">Account statement</h1>
+
+<% unless @in_effect.empty? %>
+  <table class="statement in_effect">
+    <tr>
+      <th>No.</th>
+      <th>Date</th>
+      <th>Description</th>
+      <th>Value</th>
+    </tr>
+    <% for document in @in_effect %>
+      <tr>
+        <td><%= h document.identifier %></td>
+        <td><%= h (document.issue_date || document.updated_at).strftime('%Y-%m-%d') %></td>
+        <td><%= link_to h(document.description), :action => :document, :id => document.id %></td>
+        <td><%= h document.total_amount_formatted %></td>
+      </tr>
+    <% end %>
+  </table>
+<% end %>
+
+<% unless @open_or_pending.empty? %>
+  <h2 class="statement open_or_pending">Charges not yet invoiced</h2>
+  <table class="statement open_or_pending">
+    <tr>
+      <th>Description</th>
+      <th>Value</th>
+    </tr>
+    <% for document in @open_or_pending %>
+      <tr>
+        <td><%= link_to h(document.description), :action => :document, :id => document.id %></td>
+        <td><%= h document.total_amount_formatted %></td>
+      </tr>
+    <% end %>
+  </table>
+<% end %>

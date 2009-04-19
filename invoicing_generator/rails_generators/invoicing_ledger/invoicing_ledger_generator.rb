@@ -51,8 +51,13 @@ class InvoicingLedgerGenerator < Rails::Generator::NamedBase
       # Migration
       m.migration_template 'migration.rb', 'db/migrate', :migration_file_name => 'create_invoicing_ledger'
       
-      # Initializer
+      # Static files
+      m.directory 'config/initializers'
       m.file 'initializer.rb', 'config/initializers/invoicing.rb'
+      view_directory = File.join('app/views', name_details[:controller][:underscore_base])
+      m.directory view_directory
+      m.file 'statement_view.html', File.join(view_directory, 'statement.html.erb')
+      m.file 'ledger_view.html',    File.join(view_directory, 'ledger.html.erb')
     end
   end
 
