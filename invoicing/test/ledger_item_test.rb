@@ -261,6 +261,13 @@ class LedgerItemTest < Test::Unit::TestCase
     assert_equal BigDecimal('3'), invoice.tax_amount2
   end
   
+  def test_do_not_overwrite_total_amount_for_payment_without_line_items
+    payment = MyPayment.new :total_amount2 => 23.45
+    payment.save!
+    assert_equal([{'total_amount2' => '23.4500'}],
+      ActiveRecord::Base.connection.select_all("SELECT total_amount2 FROM ledger_item_records WHERE id2=#{payment.id}"))
+  end
+  
   def test_line_items_error
     assert_raise RuntimeError do
       MyInvoice.find(1).line_items # not line_items2

@@ -416,10 +416,13 @@ module Invoicing
     
     # Calculate sum of net_amount and tax_amount across all line items, and assign it to total_amount;
     # calculate sum of tax_amount across all line items, and assign it to tax_amount.
-    # Called automatically as a +before_validation+ callback.
+    # Called automatically as a +before_validation+ callback. If the LedgerItem subtype is +payment+
+    # and there are no line items then the total amount is not touched.
     def calculate_total_amount
-      net_total = tax_total = BigDecimal('0')
       line_items = ledger_item_class_info.get(self, :line_items)
+      return if self.class.is_payment && line_items.empty?
+
+      net_total = tax_total = BigDecimal('0')
       
       line_items.each do |line|
         info = line.send(:line_item_class_info)
