@@ -20,6 +20,7 @@ rails_generators/invoicing_ledger/templates/line_item.rb
 rails_generators/invoicing_ledger/templates/migration.rb
 rails_generators/invoicing_ledger/templates/payment.rb
 rails_generators/invoicing_ledger/templates/statement_view.html
+rails_generators/invoicing_ledger/templates/stylesheet.css
 script/console
 script/destroy
 script/generate
