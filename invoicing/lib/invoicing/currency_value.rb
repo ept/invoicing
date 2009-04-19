@@ -208,8 +208,8 @@ module Invoicing
             write_attribute(attr, new_value)
           end
           
-          define_method("#{attr}_formatted") do |options|
-            options ||= {}
+          define_method("#{attr}_formatted") do |*args|
+            options = args.first || {}
             value_as_float = begin
               Kernel.Float(send("#{attr}_before_type_cast")) 
             rescue ArgumentError, TypeError
