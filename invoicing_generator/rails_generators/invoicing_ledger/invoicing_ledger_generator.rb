@@ -58,6 +58,7 @@ class InvoicingLedgerGenerator < Rails::Generator::NamedBase
       m.directory view_directory
       m.file 'statement_view.html', File.join(view_directory, 'statement.html.erb')
       m.file 'ledger_view.html',    File.join(view_directory, 'ledger.html.erb')
+      m.file 'stylesheet.css',      File.join('public/stylesheets', 'invoicing_ledger.css')
       
       # Routes
       ctrl = name_details[:controller][:underscore_base]

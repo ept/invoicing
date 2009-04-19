@@ -1,0 +1,69 @@
+table.invoice {
+  width: 800px;
+}
+
+table.invoice td, table.invoice th {
+  vertical-align: top;
+}
+
+table.invoice.addresses {
+  table-layout: fixed;
+  text-align: left;
+}
+
+table.invoice.addresses td, table.invoice.addresses th {
+  padding: 0.5em;
+}
+
+table.invoice.addresses td.vcard {
+  border: 1px solid black;
+}
+
+table.invoice.metadata {
+  table-layout: fixed;
+  margin: 2em 0 1em 0;
+}
+
+table.invoice.metadata tr {
+  text-align: right;
+}
+
+table.invoice.metadata td {
+  width: 20%;
+  text-align: left;
+}
+
+p.invoice.description {
+  font-weight: bold;
+  background-color: #eee;
+  width: 800px;
+  padding: 0.5em;
+}
+
+table.invoice.line-items {
+  border-collapse: collapse;
+  empty-cells: show;
+  margin-bottom: 5em;
+}
+
+table.invoice.line-items td, table.invoice.line-items th {
+  border: 1px solid black;
+  padding: 0.5em;
+  text-align: left;
+}
+
+table.invoice.line-items td.net-amount, table.invoice.line-items th.net-amount,
+table.invoice.line-items td.tax-amount, table.invoice.line-items th.tax-amount {
+  text-align: right;
+}
+
+table.invoice.line-items tr.subtotal td, table.invoice.line-items tr.subtotal th {
+  padding-top: 3em;
+  text-align: right;
+}
+
+table.invoice.line-items tr.total td, table.invoice.line-items tr.total th {
+  padding-top: 2em;
+  text-align: right;
+  font-weight: bold;
+}
