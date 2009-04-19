@@ -13,7 +13,7 @@
         <td><%= h document.identifier %></td>
         <td><%= h (document.issue_date || document.updated_at).strftime('%Y-%m-%d') %></td>
         <td><%= link_to h(document.description), document_path(document) %></td>
-        <td><%= h document.total_amount_formatted %></td>
+        <td><%= h document.total_amount_formatted(:debit => :negative, :self_id => @self_id) %></td>
       </tr>
     <% end %>
   </table>
@@ -29,7 +29,7 @@
     <% for document in @open_or_pending %>
       <tr>
         <td><%= link_to h(document.description), document_path(document) %></td>
-        <td><%= h document.total_amount_formatted %></td>
+        <td><%= h document.total_amount_formatted(:debit => :negative, :self_id => @self_id) %></td>
       </tr>
     <% end %>
   </table>

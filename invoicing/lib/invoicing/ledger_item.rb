@@ -310,7 +310,7 @@ module Invoicing
         
         # Set the 'amount' columns to act as currency values
         acts_as_currency_value(info.method(:total_amount), info.method(:tax_amount),
-          :currency => info.method(:currency))
+          :currency => info.method(:currency), :value_for_formatting => :value_for_formatting)
         
         extend Invoicing::FindSubclasses
         include Invoicing::LedgerItem::RenderHTML
@@ -546,6 +546,17 @@ module Invoicing
       raise ArgumentError, "self_id #{self_id.inspect} is neither sender nor recipient" unless sender_is_self || recipient_is_self
       raise ArgumentError, "self_id #{self_id.inspect} is both sender and recipient" if sender_is_self && recipient_is_self
       self.class.debit_when_sent_by_self ? sender_is_self : recipient_is_self
+    end
+
+    # Invoked internally when +total_amount_formatted+ or +tax_amount_formatted+ is called. Allows
+    # you to specify options like <tt>:debit => :negative, :self_id => 42</tt> meaning that if this
+    # ledger item is a debit as regarded from the point of view of +self_id+ then it should be
+    # displayed as a negative number. Note this only affects the output formatting, not the actual
+    # stored values.
+    def value_for_formatting(value, options={})
+      value = -value if (options[:debit]  == :negative) &&  debit?(options[:self_id])
+      value = -value if (options[:credit] == :negative) && !debit?(options[:self_id])
+      value
     end
     
     

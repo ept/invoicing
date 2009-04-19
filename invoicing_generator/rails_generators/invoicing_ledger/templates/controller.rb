@@ -18,7 +18,8 @@ end
 # GET /<%= name_details[:controller][:underscore_base] %>/1/2  => Show list of transactions between parties 1 and 2
 def statement
   # FIXME check if the current user is allowed to access this account statement
-  scope = <%= name_details[:ledger_item][:class_name_full] %>.exclude_empty_invoices.sent_or_received_by(params[:id]).sorted(:issue_date)
+  @self_id = params[:id].to_i
+  scope = <%= name_details[:ledger_item][:class_name_full] %>.exclude_empty_invoices.sent_or_received_by(@self_id).sorted(:issue_date)
   @in_effect = scope.in_effect.all
   @open_or_pending = scope.open_or_pending.all
 end
