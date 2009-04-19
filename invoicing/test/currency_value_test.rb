@@ -82,6 +82,15 @@ class CurrencyValueTest < Test::Unit::TestCase
     assert_equal "$3.33", record.amount_formatted
   end
   
+  def test_standalone_formatting
+    assert_equal "12.00 €", Invoicing::CurrencyValue::Formatter.format_value(:eur, 12, :suffix => true)
+  end
+  
+  def test_standalone_currency_info
+    assert_equal({:code => 'USD', :symbol => '$', :round => 0.01, :suffix => false,
+      :space => false, :digits => 2}, Invoicing::CurrencyValue::Formatter.currency_info(:USD))
+  end
+  
   def test_assign_float_to_new_record_and_format
     record = CurrencyValueRecord.new
     record.amount = 44.44

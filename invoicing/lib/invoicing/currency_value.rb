@@ -148,15 +148,15 @@ module Invoicing
         # <tt>:digits</tt>:: Number of digits to display after the decimal point.
         def currency_info(code, options={})
           code = code.to_s.upcase
-          valid_options = [:symbol, :round, :suffix, :space, :digits, :format]
+          valid_options = [:symbol, :round, :suffix, :space, :digits]
           info = {:code => code, :symbol => code, :round => 0.01, :suffix => nil, :space => nil, :digits => nil}
           if ::Invoicing::CurrencyValue::CURRENCIES.has_key? code
             info.update(::Invoicing::CurrencyValue::CURRENCIES[code])
           end
           options.each_pair {|key, value| info[key] = value if valid_options.include? key }
         
-          info[:suffix] = true if info[:suffix].nil? && (info[:code] == info[:symbol]) && !info[:code].nil?
-          info[:space]  = true if info[:space].nil?  && info[:suffix]
+          info[:suffix] ||= (info[:code] == info[:symbol]) && !info[:code].nil?
+          info[:space]  ||= info[:suffix]
           info[:digits] = -Math.log10(info[:round]).floor if info[:digits].nil?
           info[:digits] = 0 if info[:digits] < 0
         
