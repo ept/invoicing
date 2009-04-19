@@ -745,7 +745,11 @@ module Invoicing
       end
       
       def method_missing(name, *args)
-        #format_currency_value(send(name.gsub(/_formatted$/, '')))
+        if name.to_s =~ /(.*)_formatted$/
+          ::Invoicing::CurrencyValue::Formatter.format_value(currency, send($1))
+        else
+          super
+        end
       end
     end
     

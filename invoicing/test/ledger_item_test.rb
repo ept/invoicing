@@ -287,47 +287,58 @@ class LedgerItemTest < Test::Unit::TestCase
   end
   
   def test_account_summary
-    summary = {:GBP => {:sales => BigDecimal('257.50'), :purchases => BigDecimal('141.97'),
-      :sale_receipts => BigDecimal('256.50'), :purchase_payments => BigDecimal('0.00'),
-      :balance => BigDecimal('-140.97')}}
-    assert_equal summary, MyLedgerItem.account_summary(1, 2)
+    summary = MyLedgerItem.account_summary(1, 2)
+    assert_equal [:GBP], summary.keys
+    assert_equal BigDecimal('257.50'),  summary[:GBP].sales
+    assert_equal BigDecimal('141.97'),  summary[:GBP].purchases
+    assert_equal BigDecimal('256.50'),  summary[:GBP].sale_receipts
+    assert_equal BigDecimal('0.00'),    summary[:GBP].purchase_payments
+    assert_equal BigDecimal('-140.97'), summary[:GBP].balance
   end
   
   def test_account_summary_with_scope
-    summary = {:GBP => {:sales => BigDecimal('257.50'), :purchases => BigDecimal('0.00'),
-      :sale_receipts => BigDecimal('256.50'), :purchase_payments => BigDecimal('0.00'),
-      :balance => BigDecimal('1.00')}}
     conditions = ['issue_date2 >= ? AND issue_date2 < ?', DateTime.parse('2008-01-01'), DateTime.parse('2009-01-01')]
-    assert_equal summary, MyLedgerItem.scoped(:conditions => conditions).account_summary(1, 2)
+    summary = MyLedgerItem.scoped(:conditions => conditions).account_summary(1, 2)
+    assert_equal BigDecimal('257.50'), summary[:GBP].sales
+    assert_equal BigDecimal('0.00'),   summary[:GBP].purchases
+    assert_equal BigDecimal('256.50'), summary[:GBP].sale_receipts
+    assert_equal BigDecimal('0.00'),   summary[:GBP].purchase_payments
+    assert_equal BigDecimal('1.00'),   summary[:GBP].balance
   end
   
   def test_account_summaries
-    summaries = {
-      1 => {:GBP => {:balance => BigDecimal('140.97'), :sales => BigDecimal('141.97'),
-                     :purchases => BigDecimal('257.50'), :sale_receipts => BigDecimal('0.00'),
-                     :purchase_payments => BigDecimal('256.50')}
-           },
-      3 => {:USD => {:balance => BigDecimal('-432.10'), :sales => BigDecimal('0.00'),
-                     :purchases => BigDecimal('0.00'), :sale_receipts => BigDecimal('432.10'),
-                     :purchase_payments => BigDecimal('0.00')}
-           }
-    }
-    assert_equal summaries, MyLedgerItem.account_summaries(2)
+    summaries = MyLedgerItem.account_summaries(2)
+    assert_equal [1, 3], summaries.keys
+    assert_equal [:GBP], summaries[1].keys
+    assert_equal BigDecimal('257.50'),  summaries[1][:GBP].purchases
+    assert_equal BigDecimal('141.97'),  summaries[1][:GBP].sales
+    assert_equal BigDecimal('256.50'),  summaries[1][:GBP].purchase_payments
+    assert_equal BigDecimal('0.00'),    summaries[1][:GBP].sale_receipts
+    assert_equal BigDecimal('140.97'),  summaries[1][:GBP].balance
+    assert_equal [:USD], summaries[3].keys
+    assert_equal BigDecimal('0.00'),    summaries[3][:USD].purchases
+    assert_equal BigDecimal('0.00'),    summaries[3][:USD].sales
+    assert_equal BigDecimal('0.00'),    summaries[3][:USD].purchase_payments
+    assert_equal BigDecimal('432.10'),  summaries[3][:USD].sale_receipts
+    assert_equal BigDecimal('-432.10'), summaries[3][:USD].balance
   end
   
   def test_account_summaries_with_scope
-    summaries = {
-      1 => {:GBP => {:balance => BigDecimal('-315.00'), :sales => BigDecimal('0.00'),
-                     :purchases => BigDecimal('315.00'), :sale_receipts => BigDecimal('0.00'),
-                     :purchase_payments => BigDecimal('0.00')}
-           },
-      3 => {:USD => {:balance => BigDecimal('-432.10'), :sales => BigDecimal('0.00'),
-                     :purchases => BigDecimal('0.00'), :sale_receipts => BigDecimal('432.10'),
-                     :purchase_payments => BigDecimal('0.00')}
-           }
-    }
     conditions = {:conditions => ['issue_date2 < ?', DateTime.parse('2008-07-01')]}
-    assert_equal summaries, MyLedgerItem.scoped(conditions).account_summaries(2)
+    summaries = MyLedgerItem.scoped(conditions).account_summaries(2)
+    assert_equal [1, 3], summaries.keys
+    assert_equal [:GBP], summaries[1].keys
+    assert_equal BigDecimal('315.00'),  summaries[1][:GBP].purchases
+    assert_equal BigDecimal('0.00'),    summaries[1][:GBP].sales
+    assert_equal BigDecimal('0.00'),    summaries[1][:GBP].purchase_payments
+    assert_equal BigDecimal('0.00'),    summaries[1][:GBP].sale_receipts
+    assert_equal BigDecimal('-315.00'), summaries[1][:GBP].balance
+    assert_equal [:USD], summaries[3].keys
+    assert_equal BigDecimal('0.00'),    summaries[3][:USD].purchases
+    assert_equal BigDecimal('0.00'),    summaries[3][:USD].sales
+    assert_equal BigDecimal('0.00'),    summaries[3][:USD].purchase_payments
+    assert_equal BigDecimal('432.10'),  summaries[3][:USD].sale_receipts
+    assert_equal BigDecimal('-432.10'), summaries[3][:USD].balance
   end
   
   def test_sent_by_scope

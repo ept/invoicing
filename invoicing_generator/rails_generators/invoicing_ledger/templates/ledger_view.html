@@ -15,11 +15,11 @@
       <tr>
         <td><%=h @names[id] %></td>
         <td><%=h currency %></td>
-        <td><%=h @summaries[id][currency].sales %></td>
-        <td><%=h @summaries[id][currency].purchases %></td>
-        <td><%=h @summaries[id][currency].sale_receipts %></td>
-        <td><%=h @summaries[id][currency].purchase_payments %></td>
-        <td><%=h @summaries[id][currency].balance %></td>
+        <td><%=h @summaries[id][currency].sales_formatted %></td>
+        <td><%=h @summaries[id][currency].purchases_formatted %></td>
+        <td><%=h @summaries[id][currency].sale_receipts_formatted %></td>
+        <td><%=h @summaries[id][currency].purchase_payments_formatted %></td>
+        <td><%=h @summaries[id][currency].balance_formatted %></td>
       </tr>
     <% end -%>
   <% end -%>
