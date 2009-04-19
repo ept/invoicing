@@ -26,9 +26,8 @@ $hoe = Hoe.new('invoicing', Invoicing::VERSION) do |p|
   ]
 
   p.test_globs = %w[test/*_test.rb] # do not include test/models/*.rb
-  p.clean_globs |= %w[**/.DS_Store tmp *.log]
+  p.clean_globs |= %w[**/.DS_Store tmp *.log coverage]
   p.rsync_args = '-av --delete --ignore-errors'
-  #p.rcov_options = "-x '/Library/'"
 end
 
 require 'newgem/tasks' # load /tasks/*.rake
