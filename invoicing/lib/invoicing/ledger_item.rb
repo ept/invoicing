@@ -718,7 +718,8 @@ module Invoicing
         
         # Find the most recent occurrence of each ID, first in the sender_id column, then in recipient_id
         [:sender_id, :recipient_id].each do |column|
-          quoted_column = connection.quote_column_name(info.method(column))
+          column = info.method(column)
+          quoted_column = connection.quote_column_name(column)
           sql = "SELECT MAX(#{primary_key}) AS id, #{quoted_column} AS ref FROM #{quoted_table_name} WHERE "
           sql << merge_conditions({column => sender_recipient_ids})
           sql << " GROUP BY #{quoted_column}"
@@ -734,8 +735,15 @@ module Invoicing
         find(sender_recipient_to_ledger_item_ids.values.uniq).each do |ledger_item|
           sender_id = info.get(ledger_item, :sender_id)
           recipient_id = info.get(ledger_item, :recipient_id)
-          result_map[sender_id] = ledger_item.sender_details[:name] if sender_recipient_to_ledger_item_ids.include? sender_id
-          result_map[recipient_id] = ledger_item.recipient_details[:name] if sender_recipient_to_ledger_item_ids.include? recipient_id
+          
+          if sender_recipient_to_ledger_item_ids.include? sender_id
+            details = info.get(ledger_item, :sender_details)
+            result_map[sender_id] = details[:name]
+          end
+          if sender_recipient_to_ledger_item_ids.include? recipient_id
+            details = info.get(ledger_item, :recipient_details)
+            result_map[recipient_id] = details[:name]
+          end
         end
         
         result_map

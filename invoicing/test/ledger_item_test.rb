@@ -116,6 +116,18 @@ class LedgerItemTest < Test::Unit::TestCase
     assert_equal '£15.00', record.tax_amount2_formatted
   end
   
+  def test_total_amount_negative_debit
+    record = MyLedgerItem.find(5)
+    assert_equal '−$432.10', record.total_amount2_formatted(:debit => :negative, :self_id => record.recipient_id2)
+    assert_equal '$432.10', record.total_amount2_formatted(:debit => :negative, :self_id => record.sender_id2)
+  end
+  
+  def test_total_amount_negative_credit
+    record = MyLedgerItem.find(5)
+    assert_equal '−$432.10', record.total_amount2_formatted(:credit => :negative, :self_id => record.sender_id2)
+    assert_equal '$432.10', record.total_amount2_formatted(:credit => :negative, :self_id => record.recipient_id2)
+  end
+  
   def test_net_amount
     assert_equal BigDecimal('300'), MyInvoice.find(1).net_amount
   end
@@ -341,6 +353,31 @@ class LedgerItemTest < Test::Unit::TestCase
     assert_equal BigDecimal('-432.10'), summaries[3][:USD].balance
   end
   
+  def test_account_summary_formatting
+    summary = MyLedgerItem.account_summary(1, 2)
+    assert_equal [:GBP], summary.keys
+    assert_equal '£257.50',  summary[:GBP].sales_formatted
+    assert_equal '£141.97',  summary[:GBP].purchases_formatted
+    assert_equal '£256.50',  summary[:GBP].sale_receipts_formatted
+    assert_equal '£0.00',    summary[:GBP].purchase_payments_formatted
+    assert_equal '−£140.97', summary[:GBP].balance_formatted
+  end
+  
+  def test_account_summary_object_call_unknown_method
+    assert_raise NoMethodError do
+      MyLedgerItem.account_summary(1, 2)[:GBP].this_method_does_not_exist
+    end
+  end
+  
+  def test_sender_recipient_name_map_all
+    assert_equal({1 => 'Unlimited Limited', 2 => 'Lovely Customer Inc.', 3 => 'I drink milk',
+      4 => 'The taxman'}, MyLedgerItem.sender_recipient_name_map([1,2,3,4]))
+  end
+
+  def test_sender_recipient_name_map_subset
+    assert_equal({1 => 'Unlimited Limited', 3 => 'I drink milk'}, MyLedgerItem.sender_recipient_name_map([1,3]))
+  end
+
   def test_sent_by_scope
     assert_equal [2,5], MyLedgerItem.sent_by(2).map{|i| i.id}.sort
   end
