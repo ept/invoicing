@@ -353,6 +353,21 @@ class LedgerItemTest < Test::Unit::TestCase
     assert_equal BigDecimal('-432.10'), summaries[3][:USD].balance
   end
   
+  def test_account_summary_over_all_others
+    summary = MyLedgerItem.account_summary(1)
+    assert_equal [:GBP], summary.keys
+    assert_equal BigDecimal('257.50'),     summary[:GBP].sales
+    assert_equal BigDecimal('666808.63'),  summary[:GBP].purchases
+    assert_equal BigDecimal('256.50'),     summary[:GBP].sale_receipts
+    assert_equal BigDecimal('0.00'),       summary[:GBP].purchase_payments
+    assert_equal BigDecimal('-666807.63'), summary[:GBP].balance
+  end
+  
+  def test_account_summary_to_s
+    assert_equal "sales = £257.50; purchases = £666,808.63; sale_receipts = £256.50; " +
+      "purchase_payments = £0.00; balance = −£666,807.63", MyLedgerItem.account_summary(1)[:GBP].to_s
+  end
+  
   def test_account_summary_formatting
     summary = MyLedgerItem.account_summary(1, 2)
     assert_equal [:GBP], summary.keys

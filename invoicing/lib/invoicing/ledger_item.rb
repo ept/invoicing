@@ -612,14 +612,34 @@ module Invoicing
       #
       # In addition, +acts_as_currency_value+ is set on the numeric fields, so you can use its
       # convenience methods such as +summary.sales_formatted+.
-      def account_summary(self_id, other_id)
+      #
+      # If +other_id+ is +nil+, this method aggregates the accounts of +self_id+ with *all* other
+      # parties.
+      def account_summary(self_id, other_id=nil)
         info = ledger_item_class_info
-        conditions = {info.method(:sender_id)    => [self_id, other_id],
-                      info.method(:recipient_id) => [self_id, other_id]}
-
-        with_scope :find => {:conditions => conditions} do
-          summaries = account_summaries(self_id)
-          summaries[other_id] || {}
+        self_id = self_id.to_i
+        other_id = [nil, ''].include?(other_id) ? nil : other_id.to_i
+        
+        if other_id.nil?
+          result = {}
+          # Sum over all others, grouped by currency
+          account_summaries(self_id).each_pair do |other_id, hash|
+            hash.each_pair do |currency, summary|
+              if result[currency]
+                result[currency] += summary
+              else
+                result[currency] = summary
+              end
+            end
+          end
+          result
+          
+        else
+          conditions = {info.method(:sender_id)    => [self_id, other_id],
+                        info.method(:recipient_id) => [self_id, other_id]}
+          with_scope(:find => {:conditions => conditions}) do
+            account_summaries(self_id)[other_id] || {}
+          end
         end
       end
     
@@ -755,7 +775,8 @@ module Invoicing
     # Very simple class for representing the sum of all sales, purchases and payments on
     # an account.
     class AccountSummary #:nodoc:
-      attr_reader :currency, :sales, :purchases, :sale_receipts, :purchase_payments, :balance
+      NUM_FIELDS = [:sales, :purchases, :sale_receipts, :purchase_payments, :balance]
+      attr_reader *([:currency] + NUM_FIELDS)
             
       def initialize(hash)
         @currency = hash[:currency]; @sales = hash[:sales]; @purchases = hash[:purchases]
@@ -769,6 +790,19 @@ module Invoicing
         else
           super
         end
+      end
+      
+      def +(other)
+        hash = {:currency => currency}
+        NUM_FIELDS.each {|field| hash[field] = send(field) + other.send(field) }
+        AccountSummary.new hash
+      end
+      
+      def to_s
+        NUM_FIELDS.map do |field|
+          val = send("#{field}_formatted")
+          "#{field} = #{val}"
+        end.join('; ')
       end
     end
     
