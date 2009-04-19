@@ -84,6 +84,31 @@ module Invoicing
       #     validates_inclusion_of :currency_code, %w( USD GBP EUR JPY )
       #     acts_as_currency_value :net_amount, :tax_amount, :currency => :currency_code
       #   end
+      #
+      # You may also specify the <tt>:value_for_formatting</tt> option, passing it the name of a method on
+      # your model object. That method will be called when a CurrencyValue method with +_formatted+ suffix
+      # is called, and allows you to modify the numerical value before it is formatted into a string. An
+      # options hash is also passed. This can be useful, for example, if a value is stored positive but you
+      # want to display it as negative in certain circumstances depending on the view:
+      #
+      #   class LedgerItem < ActiveRecord::Base
+      #     acts_as_ledger_item
+      #     acts_as_currency_value :total_amount, :tax_amount, :value_for_formatting => :value_for_formatting
+      #
+      #     def value_for_formatting(value, options={})
+      #       value *= -1 if options[:debit]  == :negative &&  debit?(options[:self_id])
+      #       value *= -1 if options[:credit] == :negative && !debit?(options[:self_id])
+      #       value
+      #     end
+      #   end
+      #
+      #   invoice = Invoice.find(1)
+      #   invoice.total_amount_formatted :debit => :negative, :self_id => invoice.sender_id
+      #     # => '$25.00'
+      #   invoice.total_amount_formatted :debit => :negative, :self_id => invoice.recipient_id
+      #     # => '-$25.00'
+      #
+      # (The example above is actually a real part of +LedgerItem+.)
       def acts_as_currency_value(*args)
         Invoicing::ClassInfo.acts_as(Invoicing::CurrencyValue, self, args)
 
@@ -94,8 +119,8 @@ module Invoicing
 
     # Format a numeric monetary value into a human-readable string, in the currency of the
     # current model object.
-    def format_currency_value(value)
-      currency_value_class_info.format_value(self, value)
+    def format_currency_value(value, options={})
+      currency_value_class_info.format_value(self, value, options)
     end
     
     
@@ -183,11 +208,18 @@ module Invoicing
             write_attribute(attr, new_value)
           end
           
-          define_method("#{attr}_formatted") do
-            begin
-              format_currency_value(Kernel.Float(send("#{attr}_before_type_cast")))
+          define_method("#{attr}_formatted") do |options|
+            options ||= {}
+            value_as_float = begin
+              Kernel.Float(send("#{attr}_before_type_cast")) 
             rescue ArgumentError, TypeError
-              ''  # if <attr>_before_type_cast could not be converted to float
+              nil
+            end
+            
+            if value_as_float.nil?
+              ''
+            else
+              format_currency_value(value_as_float, options.merge({:method_name => attr}))
             end
           end
         end
@@ -211,8 +243,13 @@ module Invoicing
       
       # Formats a numeric value as a nice currency string in UTF-8 encoding.
       # +object+ is the model object carrying the value (used to determine the currency).
-      def format_value(object, value)
-        ::Invoicing::CurrencyValue::Formatter.format_value(currency_of(object), value, all_options)
+      def format_value(object, value, options={})
+        options = all_options.merge(options).symbolize_keys
+        intercept = options[:value_for_formatting]
+        if intercept && object.respond_to?(intercept)
+          value = object.send(intercept, value, options)
+        end
+        ::Invoicing::CurrencyValue::Formatter.format_value(currency_of(object), value, options)
       end
       
       # If other modules have registered callbacks for the event of reading a rounded attribute,
