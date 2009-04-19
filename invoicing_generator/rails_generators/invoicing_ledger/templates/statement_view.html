@@ -12,7 +12,7 @@
       <tr>
         <td><%= h document.identifier %></td>
         <td><%= h (document.issue_date || document.updated_at).strftime('%Y-%m-%d') %></td>
-        <td><%= link_to h(document.description), :action => :document, :id => document.id %></td>
+        <td><%= link_to h(document.description), document_path(document) %></td>
         <td><%= h document.total_amount_formatted %></td>
       </tr>
     <% end %>
@@ -28,7 +28,7 @@
     </tr>
     <% for document in @open_or_pending %>
       <tr>
-        <td><%= link_to h(document.description), :action => :document, :id => document.id %></td>
+        <td><%= link_to h(document.description), document_path(document) %></td>
         <td><%= h document.total_amount_formatted %></td>
       </tr>
     <% end %>

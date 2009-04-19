@@ -34,6 +34,21 @@ module Rails #:nodoc:
             header + inside_template.split("\n").map{|line| "#{indent}#{line}"}.join("\n") + "\n" + footer
           end
         end
+        
+        # Based on the 'route_resources' method, but less restrictive. Adds arbitrary lines to
+        # the config/routes.rb file.
+        def add_routes(*lines)
+          text = (lines.flatten.map do |line|
+            line.strip!
+            logger.route line
+            "  #{line}\n"
+          end).join
+
+          sentinel = 'ActionController::Routing::Routes.draw do |map|'
+          unless options[:pretend]
+            gsub_file('config/routes.rb', /(#{Regexp.escape(sentinel)})/mi) {|match| "#{match}\n#{text}" }
+          end
+        end
       end
     end
   end

@@ -58,6 +58,14 @@ class InvoicingLedgerGenerator < Rails::Generator::NamedBase
       m.directory view_directory
       m.file 'statement_view.html', File.join(view_directory, 'statement.html.erb')
       m.file 'ledger_view.html',    File.join(view_directory, 'ledger.html.erb')
+      
+      # Routes
+      ctrl = name_details[:controller][:underscore_base]
+      m.add_routes(
+        "map.ledger '#{ctrl}/:id/ledger', :controller => '#{ctrl}', :action => 'ledger'",
+        "map.statement '#{ctrl}/:id/:other_id', :controller => '#{ctrl}', :action => 'statement', :id => /\\d+/, :other_id => nil",
+        "map.document '#{ctrl}/document/:id', :controller => '#{ctrl}', :action => 'document'"
+      )
     end
   end
 

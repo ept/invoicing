@@ -13,7 +13,7 @@
   <% @summaries.keys.sort.each do |id| -%>
     <% @summaries[id].keys.sort.each do |currency| -%>
       <tr>
-        <td><%=h @names[id] %></td>
+        <td><%= link_to h(@names[id]), statement_path(:id => @self_id, :other_id => id) %></td>
         <td><%=h currency %></td>
         <td><%=h @summaries[id][currency].sales_formatted %></td>
         <td><%=h @summaries[id][currency].purchases_formatted %></td>
