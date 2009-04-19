@@ -1,25 +1,25 @@
 <h1 class="ledger">Sales and purchase ledger</h1>
 
-<table>
+<table class="ledger">
   <tr>
-    <th>Name</th>
-    <th>Currency</th>
-    <th>Sales</th>
-    <th>Purchases</th>
-    <th>Sale Receipts</th>
-    <th>Purchase Payments</th>
-    <th>Balance</th>
+    <th class="name">Name</th>
+    <th class="currency">Currency</th>
+    <th class="sales">Sales</th>
+    <th class="purchases">Purchases</th>
+    <th class="sale-receipts">Sale Receipts</th>
+    <th class="purchase-payments">Purchase Payments</th>
+    <th class="balance">Balance</th>
   </tr>
   <% @summaries.keys.sort.each do |id| -%>
     <% @summaries[id].keys.sort.each do |currency| -%>
       <tr>
-        <td><%= link_to h(@names[id]), statement_path(:id => @self_id, :other_id => id) %></td>
-        <td><%=h currency %></td>
-        <td><%=h @summaries[id][currency].sales_formatted %></td>
-        <td><%=h @summaries[id][currency].purchases_formatted %></td>
-        <td><%=h @summaries[id][currency].sale_receipts_formatted %></td>
-        <td><%=h @summaries[id][currency].purchase_payments_formatted %></td>
-        <td><%=h @summaries[id][currency].balance_formatted %></td>
+        <td class="name"><%= link_to h(@names[id]), statement_path(:id => @self_id, :other_id => id) %></td>
+        <td class="currency"><%=h currency %></td>
+        <td class="sales"><%=h @summaries[id][currency].sales_formatted %></td>
+        <td class="purchases"><%=h @summaries[id][currency].purchases_formatted %></td>
+        <td class="sale-receipts"><%=h @summaries[id][currency].sale_receipts_formatted %></td>
+        <td class="purchase-payments"><%=h @summaries[id][currency].purchase_payments_formatted %></td>
+        <td class="balance"><%=h @summaries[id][currency].balance_formatted %></td>
       </tr>
     <% end -%>
   <% end -%>

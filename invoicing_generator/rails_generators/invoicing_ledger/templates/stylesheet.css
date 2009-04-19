@@ -67,3 +67,61 @@ table.invoice.line-items tr.total td, table.invoice.line-items tr.total th {
   text-align: right;
   font-weight: bold;
 }
+
+
+
+
+table.ledger {
+  border-collapse: collapse;
+  empty-cells: show;
+  margin: 2em 0 5em;
+  table-layout: fixed;
+  width: 900px;
+}
+
+table.ledger td, table.ledger th {
+  border: 1px solid black;
+  padding: 0.5em;
+  text-align: right;
+  vertical-align: top;
+}
+
+table.ledger td.name, table.ledger th.name {
+  text-align: left;
+  width: 25%;
+}
+
+
+
+table.statement {
+  border-collapse: collapse;
+  empty-cells: show;
+  margin: 2em 0 5em;
+  table-layout: fixed;
+  width: 800px;
+}
+
+table.statement td, table.statement th {
+  border: 1px solid black;
+  padding: 0.5em;
+  text-align: left;
+  vertical-align: top;
+}
+
+table.statement td.number, table.statement th.number {
+  width: 5%;
+}
+
+table.statement td.date, table.statement th.date,
+table.statement td.amount, table.statement th.amount {
+  width: 15%;
+}
+
+table.statement td.amount, table.statement th.amount {
+  text-align: right;
+}
+
+table.statement tr.balance td, table.statement tr.balance th {
+  text-align: right;
+  font-weight: bold;
+}

@@ -20,8 +20,10 @@ def statement
   # FIXME check if the current user is allowed to access this account statement
   @self_id = params[:id].to_i
   scope = <%= name_details[:ledger_item][:class_name_full] %>.exclude_empty_invoices.sent_or_received_by(@self_id).sorted(:issue_date)
+  scope = scope.sent_or_received_by(params[:other_id]) if params[:other_id]
   @in_effect = scope.in_effect.all
   @open_or_pending = scope.open_or_pending.all
+  @summary = <%= name_details[:ledger_item][:class_name_full] %>.account_summary(@self_id, params[:other_id])
 end
 
 # Display an invoice or credit note.

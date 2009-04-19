@@ -3,17 +3,29 @@
 <% unless @in_effect.empty? %>
   <table class="statement in_effect">
     <tr>
-      <th>No.</th>
-      <th>Date</th>
-      <th>Description</th>
-      <th>Value</th>
+      <th class="number">No.</th>
+      <th class="date">Date</th>
+      <th class="description">Description</th>
+      <th class="amount">Amount</th>
     </tr>
     <% for document in @in_effect %>
       <tr>
-        <td><%= h document.identifier %></td>
-        <td><%= h (document.issue_date || document.updated_at).strftime('%Y-%m-%d') %></td>
-        <td><%= link_to h(document.description), document_path(document) %></td>
-        <td><%= h document.total_amount_formatted(:debit => :negative, :self_id => @self_id) %></td>
+        <td class="number"><%= h document.identifier %></td>
+        <td class="date"><%= h (document.issue_date || document.updated_at).strftime('%Y-%m-%d') %></td>
+        <td class="description">
+          <% if document.class.is_payment -%>
+            <%= h document.description %>
+          <% else -%>
+            <%= link_to h(document.description), document_path(document) %>
+          <% end -%>
+        </td>
+        <td class="amount"><%= h document.total_amount_formatted(:debit => :negative, :self_id => @self_id) %></td>
+      </tr>
+    <% end %>
+    <% @summary.each_pair do |currency, balances| %>
+      <tr class="balance">
+        <th colspan="3">Balance due (<%= h currency %>)</th>
+        <td class="amount"><%= balances.balance_formatted %></td>
       </tr>
     <% end %>
   </table>
@@ -23,13 +35,13 @@
   <h2 class="statement open_or_pending">Charges not yet invoiced</h2>
   <table class="statement open_or_pending">
     <tr>
-      <th>Description</th>
-      <th>Value</th>
+      <th class="description">Description</th>
+      <th class="amount">Amount</th>
     </tr>
     <% for document in @open_or_pending %>
       <tr>
-        <td><%= link_to h(document.description), document_path(document) %></td>
-        <td><%= h document.total_amount_formatted(:debit => :negative, :self_id => @self_id) %></td>
+        <td class="description"><%= link_to h(document.description), document_path(document) %></td>
+        <td class="amount"><%= h document.total_amount_formatted(:debit => :negative, :self_id => @self_id) %></td>
       </tr>
     <% end %>
   </table>
