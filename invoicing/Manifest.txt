@@ -23,6 +23,7 @@ lib/invoicing/version.rb
 script/console
 script/destroy
 script/generate
+tasks/rcov.rake
 test/cached_record_test.rb
 test/class_info_test.rb
 test/connection_adapter_ext_test.rb
