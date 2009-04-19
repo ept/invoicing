@@ -109,6 +109,57 @@ module Invoicing
     protected :write_back_currency_values
 
 
+    # Encapsulates the methods for formatting currency values in a human-friendly way.
+    # These methods do not depend on ActiveRecord and can thus also be called externally.
+    module Formatter
+      class << self
+        
+        # Given the three-letter ISO 4217 code of a currency, returns a hash with useful bits of information:
+        # <tt>:code</tt>::   The ISO 4217 code of the currency.
+        # <tt>:round</tt>::  Smallest unit of the currency in normal use, to which values are rounded. Default is 0.01.
+        # <tt>:symbol</tt>:: Symbol or string usually used to denote the currency. Encoded as UTF-8. Default is ISO 4217 code.
+        # <tt>:suffix</tt>:: +true+ if the currency symbol appears after the number, +false+ if it appears before.
+        # <tt>:space</tt>::  Whether or not to leave a space between the number and the currency symbol.
+        # <tt>:digits</tt>:: Number of digits to display after the decimal point.
+        def currency_info(code, options={})
+          code = code.to_s.upcase
+          valid_options = [:symbol, :round, :suffix, :space, :digits, :format]
+          info = {:code => code, :symbol => code, :round => 0.01, :suffix => nil, :space => nil, :digits => nil}
+          if ::Invoicing::CurrencyValue::CURRENCIES.has_key? code
+            info.update(::Invoicing::CurrencyValue::CURRENCIES[code])
+          end
+          options.each_pair {|key, value| info[key] = value if valid_options.include? key }
+        
+          info[:suffix] = true if info[:suffix].nil? && (info[:code] == info[:symbol]) && !info[:code].nil?
+          info[:space]  = true if info[:space].nil?  && info[:suffix]
+          info[:digits] = -Math.log10(info[:round]).floor if info[:digits].nil?
+          info[:digits] = 0 if info[:digits] < 0
+        
+          info
+        end
+      
+        # Given the three-letter ISO 4217 code of a currency and a BigDecimal value, returns the
+        # value formatted as an UTF-8 string, ready for human consumption.
+        #
+        # FIXME: This method currently does not take locale into account -- it always uses the dot
+        # as decimal separator and the comma as thousands separator.
+        def format_value(currency_code, value, options={})
+          info = currency_info(currency_code, options)
+        
+          value = "%.#{info[:digits]}f" % value
+          while value.sub!(/(\d+)(\d\d\d)/,'\1,\2'); end
+          if ['', nil].include? info[:symbol]
+            value
+          elsif info[:space]
+            info[:suffix] ? "#{value} #{info[:symbol]}" : "#{info[:symbol]} #{value}"
+          else
+            info[:suffix] ? "#{value}#{info[:symbol]}" : "#{info[:symbol]}#{value}"
+          end
+        end
+      end
+    end
+
+
     class ClassInfo < Invoicing::ClassInfo::Base #:nodoc:
       
       def initialize(model_class, previous_info, args)
@@ -153,43 +204,15 @@ module Invoicing
         end
       end
       
-      # Returns a hash of information about the currency used by model +object+. Contains the following keys:
-      # <tt>:code</tt>::   The ISO 4217 code of the currency.
-      # <tt>:round</tt>::  Smallest unit of the currency in normal use, to which values are rounded. Default is 0.01.
-      # <tt>:symbol</tt>:: Symbol or string usually used to denote the currency. Encoded as UTF-8. Default is ISO 4217 code.
-      # <tt>:suffix</tt>:: +true+ if the currency symbol appears after the number, +false+ if it appears before.
-      # <tt>:space</tt>::  Whether or not to leave a space between the number and the currency symbol.
-      # <tt>:digits</tt>:: Number of digits to display after the decimal point.
+      # Returns a hash of information about the currency used by model +object+.
       def currency_info_for(object)
-        valid_options = [:symbol, :round, :suffix, :space, :digits, :format]
-        code = currency_of(object)
-        info = {:code => code, :symbol => code, :round => 0.01, :suffix => nil, :space => nil, :digits => nil}
-        if ::Invoicing::CurrencyValue::CURRENCIES.has_key? code
-          info.update(::Invoicing::CurrencyValue::CURRENCIES[code])
-        end
-        all_options.each_pair {|key, value| info[key] = value if valid_options.include? key }
-        
-        info[:suffix] = true if info[:suffix].nil? && (info[:code] == info[:symbol]) && !info[:code].nil?
-        info[:space]  = true if info[:space].nil?  && info[:suffix]
-        info[:digits] = -Math.log10(info[:round]).floor if info[:digits].nil?
-        info[:digits] = 0 if info[:digits] < 0
-        
-        info
+        ::Invoicing::CurrencyValue::Formatter.currency_info(currency_of(object), all_options)
       end
       
       # Formats a numeric value as a nice currency string in UTF-8 encoding.
       # +object+ is the model object carrying the value (used to determine the currency).
       def format_value(object, value)
-        info = currency_info_for(object)
-        
-        # FIXME: take locale into account
-        value = "%.#{info[:digits]}f" % value
-        while value.sub!(/(\d+)(\d\d\d)/,'\1,\2'); end
-        if info[:space]
-          info[:suffix] ? "#{value} #{info[:symbol]}" : "#{info[:symbol]} #{value}"
-        else
-          info[:suffix] ? "#{value}#{info[:symbol]}" : "#{info[:symbol]}#{value}"
-        end
+        ::Invoicing::CurrencyValue::Formatter.format_value(currency_of(object), value, all_options)
       end
       
       # If other modules have registered callbacks for the event of reading a rounded attribute,
