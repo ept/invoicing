@@ -1,1 +1,26 @@
 <h1 class="ledger">Sales and purchase ledger</h1>
+
+<table>
+  <tr>
+    <th>Name</th>
+    <th>Currency</th>
+    <th>Sales</th>
+    <th>Purchases</th>
+    <th>Sale Receipts</th>
+    <th>Purchase Payments</th>
+    <th>Balance</th>
+  </tr>
+  <% @summaries.keys.sort.each do |id| -%>
+    <% @summaries[id].keys.sort.each do |currency| -%>
+      <tr>
+        <td><%=h @names[id] %></td>
+        <td><%=h currency %></td>
+        <td><%=h @summaries[id][currency].sales %></td>
+        <td><%=h @summaries[id][currency].purchases %></td>
+        <td><%=h @summaries[id][currency].sale_receipts %></td>
+        <td><%=h @summaries[id][currency].purchase_payments %></td>
+        <td><%=h @summaries[id][currency].balance %></td>
+      </tr>
+    <% end -%>
+  <% end -%>
+</table>

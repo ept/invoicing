@@ -3,7 +3,7 @@ end
 
 def ledger
   @summaries = <%= name_details[:ledger_item][:class_name_full] %>.account_summaries(params[:id])
-  company_ids = [params[:id].to_i] + @summaries.keys
+  @names = <%= name_details[:ledger_item][:class_name_full] %>.sender_recipient_name_map(params[:id], @summaries.keys)
 end
 
 def statement

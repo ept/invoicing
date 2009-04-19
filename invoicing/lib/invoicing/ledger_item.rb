@@ -583,21 +583,24 @@ module Invoicing
       
       # Returns a summary of the customer or supplier account between two parties identified
       # by +self_id+ (the party from whose perspective the account is seen, 'you') and +other_id+
-      # ('them', your supplier/customer). The return value is a hash with the following structure:
+      # ('them', your supplier/customer). The return value is a hash with ISO 4217 currency codes
+      # as keys (as symbols), and summary objects as values. An account using only one currency
+      # will have only one entry in the hash, but more complex accounts may have several.
       #
-      #   { :GBP => {                                 # ISO 4217 currency code for the following figures
-      #       :sales             => BigDecimal(...),  # Sum of sales (invoices sent by self_id)
-      #       :purchases         => BigDecimal(...),  # Sum of purchases (invoices received by self_id)
-      #       :sale_receipts     => BigDecimal(...),  # Sum of payments received from customer
-      #       :purchase_payments => BigDecimal(...),  # Sum of payments made to supplier
-      #       :balance           => BigDecimal(...)   # sales - purchases - sale_receipts + purchase_payments
-      #     },
-      #     :USD => {                                 # Another block as above, if the account uses
-      #       ...                                     # multiple currencies
-      #   }}
+      # The summary object has the following methods:
+      #
+      #   currency          => symbol           # Same as the key of this hash entry
+      #   sales             => BigDecimal(...)  # Sum of sales (invoices sent by self_id)
+      #   purchases         => BigDecimal(...)  # Sum of purchases (invoices received by self_id)
+      #   sale_receipts     => BigDecimal(...)  # Sum of payments received from customer
+      #   purchase_payments => BigDecimal(...)  # Sum of payments made to supplier
+      #   balance           => BigDecimal(...)  # sales - purchases - sale_receipts + purchase_payments
       #
       # The <tt>:balance</tt> fields indicate any outstanding money owed on the account: the value is
       # positive if they owe you money, and negative if you owe them money.
+      #
+      # In addition, +acts_as_currency_value+ is set on the numeric fields, so you can use its
+      # convenience methods such as +summary.sales_formatted+.
       def account_summary(self_id, other_id)
         info = ledger_item_class_info
         conditions = {info.method(:sender_id)    => [self_id, other_id],
@@ -614,11 +617,11 @@ module Invoicing
       # which have +self_id+ as their +sender_id+ or +recipient_id+. Returns a hash whose keys are the
       # other party of each account (i.e. the value of +sender_id+ or +recipient_id+ which is not
       # +self_id+, as an integer), and whose values are again hashes, of the same form as returned by
-      # +account_summary+:
+      # +account_summary+ (+summary+ objects as documented on +account_summary+):
       #
       #   LedgerItem.account_summaries(1)
-      #     # => { 2 => { :USD => { :sales => ... }, :EUR => { :sales => ... } },
-      #     #      3 => { :EUR => { :sales => ... } } }
+      #     # => { 2 => { :USD => summary, :EUR => summary },
+      #     #      3 => { :EUR => summary } }
       #
       # If you want to further restrict the ledger items taken into account in this calculation (e.g.
       # include only data from a particular quarter) you can call this method within an ActiveRecord
@@ -649,8 +652,6 @@ module Invoicing
         other_id_column = ext.conditional_function(sender_is_self, cols[:recipient_id], cols[:sender_id])
         filter_conditions = "#{cols[:status]} IN ('closed','cleared') AND (#{sender_is_self} OR #{recipient_is_self})"
         
-        
-
         sql = "SELECT #{other_id_column} AS other_id, #{cols[:currency]} AS currency, " + 
           "SUM(#{ext.conditional_function(debit_when_sent,      cols[:total_amount], 0)}) AS sales, " +
           "SUM(#{ext.conditional_function(debit_when_received,  cols[:total_amount], 0)}) AS purchase_payments, " +
@@ -675,7 +676,7 @@ module Invoicing
           row.symbolize_keys!
           other_id = row[:other_id].to_i
           currency = row[:currency].to_sym
-          summary = {:balance => BigDecimal('0')}
+          summary = {:balance => BigDecimal('0'), :currency => currency}
           
           {:sales => 1, :purchases => -1, :sale_receipts => -1, :purchase_payments => 1}.each_pair do |field, factor|
             summary[field] = BigDecimal(row[field])
@@ -683,10 +684,68 @@ module Invoicing
           end
           
           results[other_id] ||= {}
-          results[other_id][currency] = summary
+          results[other_id][currency] = AccountSummary.new summary
         end
         
         results
+      end
+
+      # Takes an array of IDs like those used in +sender_id+ and +recipient_id+, and returns a hash
+      # which maps each of these IDs (typecast to integer) to the <tt>:name</tt> field of the
+      # hash returned by +sender_details+ or +recipient_details+ for that ID. This is useful as it
+      # allows +LedgerItem+ to use human-readable names for people or organisations in its output,
+      # without depending on a particular implementation of the model objects used to store those
+      # entities.
+      #
+      #   LedgerItem.sender_recipient_name_map [2, 4]
+      #   => {2 => "Fast Flowers Ltd.", 4 => "Speedy Motors"}
+      def sender_recipient_name_map(*sender_recipient_ids)
+        sender_recipient_ids = sender_recipient_ids.flatten.map &:to_i
+        sender_recipient_to_ledger_item_ids = {}
+        result_map = {}
+        info = ledger_item_class_info
+        
+        # Find the most recent occurrence of each ID, first in the sender_id column, then in recipient_id
+        [:sender_id, :recipient_id].each do |column|
+          quoted_column = connection.quote_column_name(info.method(column))
+          sql = "SELECT MAX(#{primary_key}) AS id, #{quoted_column} AS ref FROM #{quoted_table_name} WHERE "
+          sql << merge_conditions({column => sender_recipient_ids})
+          sql << " GROUP BY #{quoted_column}"
+          
+          ActiveRecord::Base.connection.select_all(sql).each do |row|
+            sender_recipient_to_ledger_item_ids[row['ref'].to_i] = row['id'].to_i
+          end
+          
+          sender_recipient_ids -= sender_recipient_to_ledger_item_ids.keys
+        end
+        
+        # Load all the ledger items needed to get one representative of each name
+        find(sender_recipient_to_ledger_item_ids.values.uniq).each do |ledger_item|
+          sender_id = info.get(ledger_item, :sender_id)
+          recipient_id = info.get(ledger_item, :recipient_id)
+          result_map[sender_id] = ledger_item.sender_details[:name] if sender_recipient_to_ledger_item_ids.include? sender_id
+          result_map[recipient_id] = ledger_item.recipient_details[:name] if sender_recipient_to_ledger_item_ids.include? recipient_id
+        end
+        
+        result_map
+      end
+      
+    end # module ClassMethods
+    
+    
+    # Very simple class for representing the sum of all sales, purchases and payments on
+    # an account.
+    class AccountSummary #:nodoc:
+      attr_reader :currency, :sales, :purchases, :sale_receipts, :purchase_payments, :balance
+            
+      def initialize(hash)
+        @currency = hash[:currency]; @sales = hash[:sales]; @purchases = hash[:purchases]
+        @sale_receipts = hash[:sale_receipts]; @purchase_payments = hash[:purchase_payments]
+        @balance = hash[:balance]
+      end
+      
+      def method_missing(name, *args)
+        #format_currency_value(send(name.gsub(/_formatted$/, '')))
       end
     end
     
