@@ -53,6 +53,18 @@ class CurrencyValueTest < Test::Unit::TestCase
     assert_equal "€1,357.90", CurrencyValueRecord.find(2).format_currency_value(BigDecimal('1357.9'))
   end
   
+  def test_format_negative_value_with_minus
+    assert_equal "−€1,357.90", CurrencyValueRecord.find(2).format_currency_value(BigDecimal('-1357.9'))
+  end
+  
+  def test_format_negative_value_with_hyphen
+    assert_equal "-€1,357.90", CurrencyValueRecord.find(2).format_currency_value(BigDecimal('-1357.9'), :negative => :hyphen)
+  end
+  
+  def test_format_negative_value_with_brackets
+    assert_equal "(€1,357.90)", CurrencyValueRecord.find(2).format_currency_value(BigDecimal('-1357.9'), :negative => :brackets)
+  end
+  
   def test_load_from_database_and_format
     assert_equal BigDecimal('123.45'), CurrencyValueRecord.find(1).amount
     assert_equal "£123.45", CurrencyValueRecord.find(1).amount_formatted

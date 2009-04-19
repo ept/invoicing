@@ -170,16 +170,32 @@ module Invoicing
         # as decimal separator and the comma as thousands separator.
         def format_value(currency_code, value, options={})
           info = currency_info(currency_code, options)
+          
+          negative = false
+          if value < 0
+            negative = true
+            value = -value
+          end
         
           value = "%.#{info[:digits]}f" % value
-          while value.sub!(/(\d+)(\d\d\d)/,'\1,\2'); end
-          if ['', nil].include? info[:symbol]
+          while value.sub!(/(\d+)(\d\d\d)/, '\1,\2'); end
+          value.sub!(/^\-/, '') # avoid displaying minus zero
+          
+          formatted = if ['', nil].include? info[:symbol]
             value
           elsif info[:space]
             info[:suffix] ? "#{value} #{info[:symbol]}" : "#{info[:symbol]} #{value}"
           else
             info[:suffix] ? "#{value}#{info[:symbol]}" : "#{info[:symbol]}#{value}"
           end
+          
+          if negative
+            # default is to use proper unicode minus sign
+            formatted = (options[:negative] == :brackets) ? "(#{formatted})" : (
+              (options[:negative] == :hyphen) ? "-#{formatted}" : "\xE2\x88\x92#{formatted}"
+            )
+          end
+          formatted
         end
       end
     end
