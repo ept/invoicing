@@ -19,12 +19,12 @@
             <%= link_to h(document.description), document_path(document) %>
           <% end -%>
         </td>
-        <td class="amount"><%= h document.total_amount_formatted(:debit => :negative, :self_id => @self_id) %></td>
+        <td class="amount"><%= h document.total_amount_formatted(:credit => :negative, :self_id => @self_id) %></td>
       </tr>
     <% end %>
     <% @summary.each_pair do |currency, balances| %>
       <tr class="balance">
-        <th colspan="3">Balance due (<%= h currency %>)</th>
+        <th colspan="3">Current account balance (<%= h currency %>)</th>
         <td class="amount"><%= balances.balance_formatted %></td>
       </tr>
     <% end %>
@@ -41,7 +41,7 @@
     <% for document in @open_or_pending %>
       <tr>
         <td class="description"><%= link_to h(document.description), document_path(document) %></td>
-        <td class="amount"><%= h document.total_amount_formatted(:debit => :negative, :self_id => @self_id) %></td>
+        <td class="amount"><%= h document.total_amount_formatted(:credit => :negative, :self_id => @self_id) %></td>
       </tr>
     <% end %>
   </table>
