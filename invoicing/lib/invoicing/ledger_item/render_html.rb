@@ -190,7 +190,8 @@ module Invoicing
         end
         
         def default_identifier_label
-          "Invoice no.:"
+          label = (factor == BigDecimal('-1')) ? invoke_credit_note_label : invoke_invoice_label
+          "#{label} no.:"
         end
         
         def default_issue_date_label
