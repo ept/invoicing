@@ -1,4 +1,5 @@
-== 0.2.0 2009-04-??
+== 0.2.0 2009-04-20
+
 * 4 major enhancements:
   * New associated gem invoicing_generator for generating an invoicing component in a Rails project
     (script/generate invoicing_ledger)
