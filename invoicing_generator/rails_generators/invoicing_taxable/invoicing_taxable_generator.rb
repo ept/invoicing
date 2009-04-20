@@ -1,12 +1,9 @@
 class InvoicingTaxableGenerator < Rails::Generator::NamedBase
   def manifest
     record do |m|
-      # Ensure appropriate folder(s) exists
-      m.directory 'some_folder'
-
-      # Create stubs
-      # m.template "template.rb",  "some_file_after_erb.rb"
-      # m.file     "file",         "some_file_copied"
+      # Migration
+      m.migration_template 'migration.rb', 'db/migrate', :migration_file_name => 'create_invoicing_taxable'
+      m.file 'tax_rate.rb', File.join('app/models', 'tax_rate.rb')
     end
   end
 
