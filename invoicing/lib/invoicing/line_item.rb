@@ -149,6 +149,8 @@ module Invoicing
           # Set the 'amount' columns to act as currency values
           acts_as_currency_value(info.method(:net_amount), info.method(:tax_amount))
           
+          before_validation :calculate_tax_amount
+          
           extend Invoicing::FindSubclasses
           
           # Dynamically created named scopes
@@ -192,6 +194,11 @@ module Invoicing
       ledger_item.send(:ledger_item_class_info).get(ledger_item, :currency)
     end
     
+    def calculate_tax_amount
+      return unless respond_to? :net_amount_taxed
+      self.tax_amount = net_amount_taxed - net_amount
+    end
+    
     # The sum of +net_amount+ and +tax_amount+.
     def gross_amount
       net_amount = line_item_class_info.get(self, :net_amount)
@@ -212,6 +219,8 @@ module Invoicing
         raise RuntimeError, "You need to define an association like 'belongs_to :ledger_item' on #{self.class.name}. If you " +
           "have defined the association with a different name, pass the option :ledger_item => :your_association_name to " +
           "acts_as_line_item."
+      elsif method_name =~ /^amount/
+        send("net_#{method_name}", *args)
       else
         super
       end
