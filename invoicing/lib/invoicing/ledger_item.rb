@@ -430,6 +430,8 @@ module Invoicing
         # Make sure ledger_item association is assigned -- the CurrencyValue
         # getters depend on it to fetch the currency
         info.set(line, :ledger_item, self)
+        line.valid? # Ensure any before_validation hooks are called
+        
         net_amount = info.get(line, :net_amount)
         tax_amount = info.get(line, :tax_amount)
         net_total += net_amount unless net_amount.nil?
