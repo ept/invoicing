@@ -20,3 +20,6 @@ git push github
 git push rubyforge
 git push --tags github
 git push --tags rubyforge
+
+# Build docs and upload them
+(cd invoicing; rake docs; rsync -av --delete --ignore-errors doc/ ept@rubyforge.org:/var/www/gforge-projects/invoicing/doc)
