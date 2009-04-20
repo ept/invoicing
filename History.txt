@@ -1,8 +1,9 @@
 == 0.2.0 2009-04-??
-* 3 major enhancements:
+* 4 major enhancements:
   * New associated gem invoicing_generator for generating an invoicing component in a Rails project
     (script/generate invoicing_ledger)
   * Generated controller and views for rendering statements and ledger
+  * Comes with a nice default stylesheet out of the box
   * More flexible formatting of currency values
 * 1 bugfix:
   * Accidental overwriting of total_amount value on payment LedgerItems without LineItems

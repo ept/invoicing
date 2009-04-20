@@ -78,6 +78,7 @@ Creates the model classes and migration for a ledger of accounting data.
 USAGE: #{$0} invoicing_ledger ControllerName [LedgerItemsModelName] [LineItemsModelName] [options]
 
 The recommended ControllerName is 'Billing'.
+The default model names are 'Billing::LedgerItem' and 'Billing::LineItem', respectively.
 EOS
     end
     
@@ -98,6 +99,7 @@ EOS
     def add_options!(opt)
       super
       opt.separator ''
+      opt.separator 'Optional configuration values:'
       opt.on "--currency=CODE", "set a default currency (3-letter code, e.g. USD or GBP)" do |currency|
         options[:currency] = currency.nil? ? nil : currency.upcase
       end

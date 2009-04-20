@@ -8,7 +8,7 @@ module InvoicingGenerator
     # Expects with_or_without_options to be defined in the importing class.
     def add_options!(opt)
       opt.separator ''
-      opt.separator 'Options:'
+      opt.separator 'Optional flags:'
       with_or_without_options.each_pair do |key, val|
         opt.on "--with-#{key}", val + (options[key] ? " (default)" : "") do
           options[key] = true
@@ -17,7 +17,7 @@ module InvoicingGenerator
           options[key] = false
         end
       end
-      opt.on("--debug", "pring debugging output") { options[:debug] = true }
+      opt.on("--debug", "print debugging output") { options[:debug] = true }
     end
     
     # Output debugging info

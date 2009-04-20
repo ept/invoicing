@@ -1,5 +1,20 @@
 Description:
+    Generates several model classes, a database migration, a controller and a
+    few views in a Rails project, constituting the core structure you need in
+    order to make use of the invoicing gem in your application.
+    
+    Once you have this structure in place you can start creating your own
+    Invoice and LineItem subclasses and store them in the database; the
+    generated controller/views will pick these up and present them nicely
+    out of the box.
+    
+    You can use the option flags to configure which fields you would like to
+    include in your database tables.
   
-  
-Usage:
-  
+    After running this generator you should take a look at the generated
+    controller and model classes and search for occurrences of 'FIXME', since
+    a few manual tweaks will be required to integrate the generated code into
+    your project.
+
+Examples:
+    `./script/generate invoicing_ledger billing --currency=GBP`
