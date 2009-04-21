@@ -3,11 +3,14 @@ title: Getting Started
 layout: default
 ---
 
-Start by installing the `invoicing` gem in the usual way:
+Start by installing the `invoicing` and `invoicing_generator` gems in the usual way:
 
 {% highlight bash %}
-sudo gem install invoicing
+sudo gem install invoicing invoicing_generator
 {% endhighlight %}
+
+(`invoicing_generator` is only needed for development; you don't need to install it on
+your production servers.)
 
 You can also clone the project with [Git](http://git-scm.com) by running:
 
@@ -18,8 +21,26 @@ git clone git://github.com/ept/invoicing
 Or [view the source code on GitHub](http://github.com/ept/invoicing).
 
 
-Create the database tables
---------------------------
+Run the generator
+-----------------
+
+New in Invoicing version 0.2: We now have a Rails generator which will set up the necessary
+model objects, a database migration, and an example controller with views for displaying
+the ledger, account statements, invoices and credit notes. To invoke the generator, go to
+the root of your Rails project and type (replacing `GBP` with your default currency of
+choice):
+
+{% highlight bash %}
+./script/generate invoicing_ledger billing --currency=GBP
+{% endhighlight %}
+
+The generator will do everything on this page (and more) for you automatically, so you can
+skip the rest of this page. If you're using this gem in a non-Rails Ruby project, you'll
+have to make the following changes manually.
+
+
+Manual setup: Create the database tables
+----------------------------------------
 
 Now you need to create a few database tables. The following migration will get
 you started. (It's currently focussed on a UK based, VAT registered business,
@@ -75,8 +96,8 @@ end
 {% endhighlight %}
 
 
-Require the invoicing gem
--------------------------
+Manual setup: Require the invoicing gem
+---------------------------------------
 
 Then tell your application that it should use the invoicing gem. For example,
 in a Rails project, create a file called `config/initializers/invoicing.rb` with
@@ -87,8 +108,8 @@ require 'invoicing'
 {% endhighlight %}
 
 
-Create model classes
---------------------
+Manual setup: Create model classes
+----------------------------------
 
 Next, create model classes corresponding to the tables above. Ideally, each should
 live in its own file with a name based on its class name, as per the convention.
