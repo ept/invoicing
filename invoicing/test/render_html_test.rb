@@ -28,6 +28,7 @@ class RenderHTMLTest < Test::Unit::TestCase
     expected[0] = "<h1>INVOICE</h1>"
     expected[3] = "        <th class=\"recipient\">Customer</th>"
     expected[4] = "        <th class=\"sender\">Supplier</th>"
+    expected[40] = "        <th>INVOICE no.:</th>"
     rendered = MyInvoice.find(1).render_html {|i|
       i.invoice_label{ "INVOICE" }
       i.sender_label "Supplier"
