@@ -30,15 +30,18 @@ end
 
 def connect_to_testing_database
   db_config = TEST_DB_CONFIG[database_used_for_testing]
+  db_config_from_file = false
   
   if File.exists? TEST_DB_CONFIG_FILE
     yaml = YAML::load File.open(TEST_DB_CONFIG_FILE)
     if yaml && yaml['test'] && (yaml['test']['adapter'].to_s == database_used_for_testing.to_s)
       db_config = yaml['test']
+      db_config_from_file = true
     end
   end
 
-  puts "Connecting to #{database_used_for_testing} with config: #{db_config.inspect}"
+  puts "Connecting to #{database_used_for_testing} with config #{db_config.inspect}" +
+    (db_config_from_file ? " from #{TEST_DB_CONFIG_FILE}" : "")
   ActiveRecord::Base.establish_connection(db_config)
 end
 
