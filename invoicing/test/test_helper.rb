@@ -18,8 +18,16 @@ TEST_DB_CONFIG = {
     :username => "root", :password => ""}
 }
 
+def database_used_for_testing
+  (ENV['DATABASE'] || :mysql).to_sym
+end
+
+def test_in_all_databases
+  !!ENV['TEST_ALL_DATABASES']
+end
+
 def connect_to_testing_database
-  ActiveRecord::Base.establish_connection(TEST_DB_CONFIG[(ENV['DATABASE'] || :mysql).to_sym])
+  ActiveRecord::Base.establish_connection(TEST_DB_CONFIG[database_used_for_testing])
 end
 
 connect_to_testing_database
