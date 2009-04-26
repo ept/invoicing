@@ -1,3 +1,6 @@
+$:.unshift(File.dirname(__FILE__)) unless
+  $:.include?(File.dirname(__FILE__)) || $:.include?(File.expand_path(File.dirname(__FILE__)))
+
 require 'activerecord'
 
 require 'invoicing/class_info'  # load first because other modules depend on this
