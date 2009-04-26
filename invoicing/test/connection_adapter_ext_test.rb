@@ -9,15 +9,19 @@ class ConnectionAdapterExtTest < Test::Unit::TestCase
   end
   
   def using_database(database_type)
-    # Skip this test if it's not for the current database type
-    return unless test_in_all_databases || (database_type.to_sym == database_used_for_testing)
-
-    # Run the test having connected to the requested database type
-    begin
-      ActiveRecord::Base.establish_connection(TEST_DB_CONFIG[database_type.to_sym])
+    if database_type.to_sym == database_used_for_testing
+      # If the test is for the main database type of this test suite, just run it
       yield
-    ensure
-      connect_to_testing_database
+
+    elsif test_in_all_databases
+      # Run the test having connected to the requested database type, or skip it
+      # if we're not trying to test all database types
+      begin
+        ActiveRecord::Base.establish_connection(TEST_DB_CONFIG[database_type.to_sym])
+        yield
+      ensure
+        connect_to_testing_database
+      end
     end
   end  
 

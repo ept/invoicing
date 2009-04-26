@@ -38,6 +38,7 @@ def connect_to_testing_database
     end
   end
 
+  puts "Connecting to #{database_used_for_testing} with config: #{db_config.inspect}"
   ActiveRecord::Base.establish_connection(db_config)
 end
 
