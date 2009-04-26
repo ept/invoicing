@@ -3,13 +3,24 @@ layout: default
 title: Ruby Invoicing Gem version 0.2 — Now with generator
 ---
 
+**Updated 2009-04-26: added video of the talk**
+
 Yesterday was a busy day: in the morning I released the new version 0.2 of the invoicing
 gem, and in the evening I presented a live demo of the latest version at the
 [London Ruby User Group](http://lrug.org/meetings/2009/03/23/april-2009-meeting/).
 
 The format of my talk was an attempt to replicate a screencast, but given completely
-live. The result was pretty hilarious, and I hope there will be a video recording of it
-online eventually.
+live. The result was pretty hilarious, and [Skills Matter](http://skillsmatter.com/),
+who host the LRUG events, kindly 
+[recorded the talk and put it online](http://skillsmatter.com/podcast/ajax-ria/invoicing-gem):
+
+<object width="550px" height="512px">
+<param name="allowfullscreen" value="true" />
+<param name="allowscriptaccess" value="always" />
+<param name="movie" value="http://vimeo.com/moogaloop.swf?clip_id=4279902&amp;server=vimeo.com&amp;show_title=1&amp;show_byline=1&amp;show_portrait=0&amp;color=00ADEF&amp;fullscreen=1" />
+<embed src="http://vimeo.com/moogaloop.swf?clip_id=4279902&amp;server=vimeo.com&amp;show_title=1&amp;show_byline=1&amp;show_portrait=0&amp;color=00ADEF&amp;fullscreen=1" type="application/x-shockwave-flash" allowfullscreen="true" allowscriptaccess="always" width="550px" height="512px">
+</embed>
+</object>
 
 Since I didn't have any slides for the talk I will simply share the notes which I wrote for
 myself in preparation. You might be able to use them to follow along with what I was doing.
