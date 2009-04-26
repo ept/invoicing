@@ -11,12 +11,14 @@ ActiveSupport::Dependencies.load_paths << File.join(File.dirname(__FILE__), 'mod
 
 require 'invoicing'
 
+# Overridden by ../../config/database.yml if it exists.
 TEST_DB_CONFIG = {
   :postgresql => {:adapter => "postgresql", :host => "localhost", :database => "invoicing_test",
     :username => "postgres", :password => ""},
   :mysql => {:adapter => "mysql", :host => "localhost", :database => "invoicing_test",
     :username => "root", :password => ""}
 }
+TEST_DB_CONFIG_FILE = File.expand_path(File.join(File.dirname(__FILE__), '..', '..', 'config', 'database.yml'))
 
 def database_used_for_testing
   (ENV['DATABASE'] || :mysql).to_sym
@@ -27,7 +29,16 @@ def test_in_all_databases
 end
 
 def connect_to_testing_database
-  ActiveRecord::Base.establish_connection(TEST_DB_CONFIG[database_used_for_testing])
+  db_config = TEST_DB_CONFIG[database_used_for_testing]
+  
+  if File.exists? TEST_DB_CONFIG_FILE
+    yaml = YAML::load File.open(TEST_DB_CONFIG_FILE)
+    if yaml && yaml['test'] && (yaml['test']['adapter'].to_s == database_used_for_testing.to_s)
+      db_config = yaml['test']
+    end
+  end
+
+  ActiveRecord::Base.establish_connection(db_config)
 end
 
 connect_to_testing_database
