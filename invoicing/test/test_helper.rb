@@ -15,8 +15,7 @@ TEST_DB_CONFIG = {
   :postgresql => {:adapter => "postgresql", :host => "localhost", :database => "invoicing_test",
     :username => "postgres", :password => ""},
   :mysql => {:adapter => "mysql", :host => "localhost", :database => "invoicing_test",
-    :username => "root", :password => ""},
-  :sqlite3 => {:adapter => "sqlite3", :database => Tempfile.new('invoicing_sqlite').path}
+    :username => "root", :password => ""}
 }
 
 def connect_to_testing_database
