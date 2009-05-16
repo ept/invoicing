@@ -4,6 +4,6 @@ test:
   encoding: utf8
   database: invoicing_test
   pool: 5
-  username: root
+  username: build
   password:
   socket: /tmp/mysql.sock
