@@ -6,7 +6,7 @@ require File.dirname(__FILE__) + '/lib/invoicing'
 # the output. Comment out the following four lines to see those warnings.
 class Hoe
   RUBY_FLAGS = ENV['RUBY_FLAGS'] || "-I#{%w(lib test).join(File::PATH_SEPARATOR)}" +
-      (RUBY_DEBUG ? " #{RUBY_DEBUG}" : '')
+      ((defined?(RUBY_DEBUG) && RUBY_DEBUG) ? " #{RUBY_DEBUG}" : '')
 end
 
 # Generate all the Rake tasks
