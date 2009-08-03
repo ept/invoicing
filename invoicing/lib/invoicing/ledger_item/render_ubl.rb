@@ -90,7 +90,7 @@ module Invoicing
             invoice.cbc :ID, identifier
             invoice.cbc :UUID, uuid if uuid
             
-            issue_date_formatted, issue_time_formatted = (issue_date || Time.now).in_time_zone.xmlschema.split('T')
+            issue_date_formatted, issue_time_formatted = date_and_time(issue_date || Time.now)
             invoice.cbc :IssueDate, issue_date_formatted
             invoice.cbc :IssueTime, issue_time_formatted
             
@@ -173,8 +173,8 @@ module Invoicing
         #   <cbc:EndDate>2008-07-02</cbc:EndDate>
         #   <cbc:EndTime>01:02:03+02:00</cbc:EndTime>
         def build_period(xml, start_datetime, end_datetime)
-          start_date, start_time = start_datetime.in_time_zone.xmlschema.split('T')
-          end_date, end_time = end_datetime.in_time_zone.xmlschema.split('T')
+          start_date, start_time = date_and_time(start_datetime)
+          end_date, end_time = date_and_time(end_datetime)
           xml.cbc :StartDate, start_date
           xml.cbc :StartTime, start_time
           xml.cbc :EndDate, end_date
@@ -247,7 +247,10 @@ module Invoicing
           quantity_tag = [:Invoice, :SelfBilledInvoice].include?(doc_type) ? :InvoicedQuantity : :CreditedQuantity
           invoice_line.cbc quantity_tag, quantity_of(line_item) if quantity_of(line_item)
           invoice_line.cbc :LineExtensionAmount, (factor*net_amount_of(line_item)).to_s, :currencyID => currency
-          invoice_line.cbc :TaxPointDate, tax_point_of(line_item).in_time_zone.strftime('%Y-%m-%d') if tax_point_of(line_item)
+          if tax_point_of(line_item)
+            tax_point_date, tax_point_time = date_and_time(tax_point_of(line_item))
+            invoice_line.cbc :TaxPointDate, tax_point_date
+          end
           
           invoice_line.cac :TaxTotal do |tax_total|
             tax_total.cbc :TaxAmount, (factor*tax_amount_of(line_item)).to_s, :currencyID => currency
@@ -262,6 +265,14 @@ module Invoicing
           end
             
           #cac:Price
+        end
+
+        private
+
+        # Returns an array of two strings, <tt>[date, time]</tt> in the format specified by UBL,
+        # for a given datetime value.
+        def date_and_time(value)
+          value.in_time_zone(Time.zone || 'Etc/UTC').xmlschema.split('T')
         end
       end
     end
