@@ -1,0 +1,8 @@
+# Details of the database connection to use for running unit tests.
+test:
+  adapter: mysql
+  encoding: utf8
+  database: invoicing_test
+  host: localhost
+  username: build
+  password:
