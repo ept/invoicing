@@ -617,7 +617,13 @@ module Invoicing
       #
       # If +other_id+ is +nil+, this method aggregates the accounts of +self_id+ with *all* other
       # parties.
-      def account_summary(self_id, other_id=nil)
+      #
+      # Also accepts options:
+      #
+      # <tt>:with_status</tt>:: List of ledger item status strings; only ledger items whose status
+      #                         is one of these will be taken into account. Default:
+      #                         <tt>["closed", "cleared"]</tt>.
+      def account_summary(self_id, other_id=nil, options={})
         info = ledger_item_class_info
         self_id = self_id.to_i
         other_id = [nil, ''].include?(other_id) ? nil : other_id.to_i
@@ -625,7 +631,7 @@ module Invoicing
         if other_id.nil?
           result = {}
           # Sum over all others, grouped by currency
-          account_summaries(self_id).each_pair do |other_id, hash|
+          account_summaries(self_id, options).each_pair do |other_id, hash|
             hash.each_pair do |currency, summary|
               if result[currency]
                 result[currency] += summary
@@ -640,7 +646,7 @@ module Invoicing
           conditions = {info.method(:sender_id)    => [self_id, other_id],
                         info.method(:recipient_id) => [self_id, other_id]}
           with_scope(:find => {:conditions => conditions}) do
-            account_summaries(self_id)[other_id] || {}
+            account_summaries(self_id, options)[other_id] || {}
           end
         end
       end
@@ -663,7 +669,13 @@ module Invoicing
       #   q3_2008 = ['issue_date >= ? AND issue_date < ?', DateTime.parse('2008-07-01'), DateTime.parse('2008-10-01')]
       #   LedgerItem.scoped(:conditions => q3_2008).account_summaries(1)
       #
-      def account_summaries(self_id)
+      #
+      # Also accepts options:
+      #
+      # <tt>:with_status</tt>:: List of ledger item status strings; only ledger items whose status
+      #                         is one of these will be taken into account. Default:
+      #                         <tt>["closed", "cleared"]</tt>.
+      def account_summaries(self_id, options={})
         info = ledger_item_class_info
         ext = Invoicing::ConnectionAdapterExt
         scope = scope(:find)
@@ -683,8 +695,9 @@ module Invoicing
         sender_is_self    = merge_conditions({info.method(:sender_id)    => self_id})
         recipient_is_self = merge_conditions({info.method(:recipient_id) => self_id})
         other_id_column = ext.conditional_function(sender_is_self, cols[:recipient_id], cols[:sender_id])
-        filter_conditions = "#{cols[:status]} IN ('closed','cleared') AND (#{sender_is_self} OR #{recipient_is_self})"
-        
+        accept_status = sanitize_sql_hash_for_conditions(info.method(:status) => (options[:with_status] || %w(closed cleared)))
+        filter_conditions = "#{accept_status} AND (#{sender_is_self} OR #{recipient_is_self})"
+
         sql = "SELECT #{other_id_column} AS other_id, #{cols[:currency]} AS currency, " + 
           "SUM(#{ext.conditional_function(debit_when_sent,      cols[:total_amount], 0)}) AS sales, " +
           "SUM(#{ext.conditional_function(debit_when_received,  cols[:total_amount], 0)}) AS purchase_payments, " +

@@ -1,3 +1,11 @@
+== 0.2.1
+
+* 1 minor enhancement:
+  * Added option to LedgerItem#account_summary which enables inclusion of open/pending
+    ledger items in the summary
+* 1 bugfix:
+  * Compatibility with ActiveRecord 2.3
+
 == 0.2.0 2009-04-20
 
 * 4 major enhancements:
