@@ -2,7 +2,7 @@
 test:
   adapter: mysql
   encoding: utf8
-  database: invoicing_test
+  database: ept_invoicing_test
   host: localhost
   username: build
   password:
