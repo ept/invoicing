@@ -47,6 +47,9 @@ end
 
 connect_to_testing_database
 
+require 'setup'
+
+
 ENV['TZ'] = 'Etc/UTC' # timezone of values in database
 ActiveRecord::Base.default_timezone = :utc # timezone of created_at and updated_at
 Time.zone = 'Etc/UTC' # timezone for output (when using Time#in_time_zone)
