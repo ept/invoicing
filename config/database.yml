@@ -2,6 +2,7 @@
 test:
   adapter: mysql
   encoding: utf8
+  # Follow RCR standard for database name
   database: ept_invoicing_test
   host: localhost
   username: build
