@@ -3,7 +3,6 @@ require 'rubygems'
 require 'activerecord'
 require 'activesupport'
 require 'flexmock/test_unit'
-require 'mocha'
 
 $: << File.join(File.dirname(__FILE__), '..', 'lib')
 
