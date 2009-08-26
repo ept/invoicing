@@ -218,11 +218,11 @@ class LedgerItemTest < Test::Unit::TestCase
   
   def test_uuid_gem_not_present
     begin
-      real_uuid = Object.send(:remove_const, :UUID)
+      real_uuid = Object.send(:remove_const, :UUID) rescue nil
       UUIDNotPresentLedgerItem.acts_as_ledger_item(LedgerItemMethods::RENAMED_METHODS)
       assert_nil UUIDNotPresentLedgerItem.new.get_class_info.uuid_generator
     ensure
-      Object.send(:const_set, :UUID, real_uuid)
+      Object.send(:const_set, :UUID, real_uuid) unless real_uuid.nil?
     end
   end
   

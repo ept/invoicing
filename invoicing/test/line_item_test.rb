@@ -99,11 +99,11 @@ class LineItemTest < Test::Unit::TestCase
   
   def test_uuid_gem_not_present
     begin
-      real_uuid = Object.send(:remove_const, :UUID)
+      real_uuid = Object.send(:remove_const, :UUID) rescue nil
       UUIDNotPresentLineItem.acts_as_line_item(LineItemMethods::RENAMED_METHODS)
       assert_nil UUIDNotPresentLineItem.new.get_class_info.uuid_generator
     ensure
-      Object.send(:const_set, :UUID, real_uuid)
+      Object.send(:const_set, :UUID, real_uuid) unless real_uuid.nil?
     end
   end
 
