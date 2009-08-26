@@ -20,6 +20,9 @@ Please see {the website}[http://ept.github.com/invoicing/] for an introduction
 to using Invoicing, and check the
 {API reference}[http://invoicing.rubyforge.org/doc/] for in-depth details.
 
+If you're interested in contributing to the invoicing gem itself, please see the file
+{HACKING.md}[http://github.com/ept/invoicing/blob/master/HACKING.md].
+
 == FEATURES
 
 * TODO
