@@ -13,7 +13,7 @@ require 'invoicing'
 # Overridden by ../../config/database.yml if it exists.
 TEST_DB_CONFIG = {
   :postgresql => {:adapter => "postgresql", :host => "localhost", :database => "invoicing_test",
-    :username => "postgres", :password => ""},
+    :username => "invoicing", :password => "password"},
   :mysql => {:adapter => "mysql", :host => "localhost", :database => "invoicing_test",
     :username => "root", :password => ""}
 }
