@@ -3,6 +3,7 @@
 * {Ruby Invoicing Framework website}[http://ept.github.com/invoicing/]
 * {API Reference Docs}[http://invoicing.rubyforge.org/doc/]
 * {Browse the code on GitHub}[http://github.com/ept/invoicing/]
+* {Continuous integration builds}[http://runcoderun.com/ept/invoicing/]
 * {RubyForge project}[http://rubyforge.org/projects/invoicing/]
 * Email: Martin Kleppmann <ept@rubyforge.org>
 
