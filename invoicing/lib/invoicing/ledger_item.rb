@@ -440,6 +440,7 @@ module Invoicing
       
       ledger_item_class_info.set(self, :total_amount, net_total + tax_total)
       ledger_item_class_info.set(self, :tax_amount,   tax_total)
+      return net_total
     end
     
     # We don't actually implement anything using +method_missing+ at the moment, but use it to
