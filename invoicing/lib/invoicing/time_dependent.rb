@@ -172,7 +172,7 @@ module Invoicing
       #   class CommissionRate < ActiveRecord::Base
       #     acts_as_time_dependent :value => :rate
       #     belongs_to :referral_program
-      #     named_scope :for_referral_program, lambda { |p| { :conditions => { :referral_program_id => p.id } } }
+      #     scope :for_referral_program, lambda { |p| { :conditions => { :referral_program_id => p.id } } }
       #   end
       #   
       #   reseller_program = ReferralProgram.find(1)

@@ -1,7 +1,7 @@
 require 'test/unit'
 require 'rubygems'
-require 'activerecord'
-require 'activesupport'
+require 'active_record'
+# require 'activesupport'
 require 'flexmock/test_unit'
 
 $: << File.join(File.dirname(__FILE__), '..', 'lib')
