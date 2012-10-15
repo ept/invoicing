@@ -12,7 +12,7 @@ class TestBaseclass < ActiveRecord::Base
   set_table_name 'find_subclasses_records'
   set_inheritance_column 'type_name' # usually left as default 'type'. rename to test renaming
   belongs_to :associate, :foreign_key => 'associate_id', :class_name => 'FindSubclassesAssociate'
-  named_scope :with_coolness, lambda{|factor| {:conditions => {:coolness_factor => factor}}}
+  scope :with_coolness, lambda{|factor| {:conditions => {:coolness_factor => factor}}}
   extend Invoicing::FindSubclasses
   def self.coolness_factor; 3; end
 end
@@ -70,7 +70,7 @@ class FindSubclassesTest < Test::Unit::TestCase
     assert_equal [1, 2, 4], TestBaseclass.all(:conditions => {:coolness_factor => 3}).map{|r| r.id}.sort
   end
   
-  def test_class_method_condition_in_named_scope
+  def test_class_method_condition_in_scope
     assert_equal [6], TestBaseclass.with_coolness(999).map{|r| r.id}
   end
   

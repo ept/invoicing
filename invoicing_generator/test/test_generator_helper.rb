@@ -21,11 +21,11 @@ if defined?(APP_ROOT)
 else
   APP_ROOT = app_root
 end
-if defined?(RAILS_ROOT)
-  RAILS_ROOT.replace(app_root)
-else
-  RAILS_ROOT = app_root
-end
+# if defined?(RAILS_ROOT)
+#   RAILS_ROOT.replace(app_root)
+# else
+#   RAILS_ROOT = app_root
+# end
 
 begin
   require 'rubigen'

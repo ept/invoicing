@@ -48,7 +48,7 @@ module Invoicing
   # You could even define a named scope to do the same thing:
   #
   #   class Product
-  #     named_scope :refrigerated_products, :conditions => {:needs_refrigeration => true})
+  #     scope :refrigerated_products, :conditions => {:needs_refrigeration => true})
   #   end
   #
   # Much nicer! The condition looks precisely like a condition on a database table column, even
