@@ -36,4 +36,4 @@ INSERT INTO ledger_item_records
 
 -- Invoice 10 is set to not add up correctly; total_amount is 0.01 too little to test error handling
 
-ALTER SEQUENCE ledger_item_records_id2_seq start 1000;
+ALTER SEQUENCE ledger_item_records_id2_seq restart 1000;

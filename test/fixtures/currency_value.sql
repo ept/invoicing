@@ -14,7 +14,7 @@ INSERT INTO currency_value_records(id, currency_code, amount, tax_amount) values
     (4, 'JPY', 8888, 123),
     (5, 'XXX', 123, NULL);
 
-ALTER SEQUENCE currency_value_records_id_seq start 1000;
+ALTER SEQUENCE currency_value_records_id_seq restart 1000;
 
     
 DROP TABLE IF EXISTS no_currency_column_records;
@@ -26,4 +26,4 @@ CREATE TABLE no_currency_column_records (
 
 INSERT INTO no_currency_column_records(id, amount) values(1, '95.15');
 
-ALTER SEQUENCE no_currency_column_records_id_seq start 1000;
+ALTER SEQUENCE no_currency_column_records_id_seq restart 1000;

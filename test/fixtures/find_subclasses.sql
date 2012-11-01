@@ -15,7 +15,7 @@ INSERT INTO find_subclasses_records(id, value, associate_id, type_name) values
     (5, 'Mooo!',    1, 'TestModule::TestInsideModuleSubclass'),
     (6, 'Baaa!',    1, 'TestOutsideModuleSubSubclass');
 
-ALTER SEQUENCE find_subclasses_records_id_seq start 1000;
+ALTER SEQUENCE find_subclasses_records_id_seq restart 1000;
 
 
 DROP TABLE IF EXISTS find_subclasses_associates;
@@ -27,7 +27,7 @@ CREATE TABLE find_subclasses_associates (
 
 INSERT INTO find_subclasses_associates (id, value) values(1, 'Cool stuff');
 
-ALTER SEQUENCE find_subclasses_associates_id_seq start 1000;
+ALTER SEQUENCE find_subclasses_associates_id_seq restart 1000;
 
 
 DROP TABLE IF EXISTS find_subclasses_non_existent;
@@ -40,4 +40,4 @@ CREATE TABLE find_subclasses_non_existent (
 
 INSERT INTO find_subclasses_non_existent(id, value, type) values(1, 'Badger', 'SurelyThereIsNoClassWithThisName');
 
-ALTER SEQUENCE find_subclasses_non_existent_id_seq start 1000;
+ALTER SEQUENCE find_subclasses_non_existent_id_seq restart 1000;

@@ -7,7 +7,7 @@ CREATE TABLE cached_records (
 
 INSERT INTO cached_records(id2, value) values(1, 'One'), (2, 'Two');
 
-ALTER SEQUENCE cached_records_id2_seq start 1000;
+ALTER SEQUENCE cached_records_id2_seq restart 1000;
 
 
 DROP TABLE IF EXISTS refers_to_cached_records;
@@ -19,4 +19,4 @@ CREATE TABLE refers_to_cached_records (
 
 INSERT INTO refers_to_cached_records(id, cached_record_id) values(1, 1), (2, 1), (3, NULL);
 
-ALTER SEQUENCE refers_to_cached_records_id_seq start 1000;
+ALTER SEQUENCE refers_to_cached_records_id_seq restart 1000;

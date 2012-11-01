@@ -32,4 +32,4 @@ INSERT INTO time_dependent_records(id2, valid_from2, valid_until2, replaced_by_i
 	( 9, '2011-01-01 00:00:00', NULL,                  NULL, 'Nine',  1), -- true
 	(10, '2008-01-01 00:00:00', NULL,                  NULL, 'Ten',   0); -- false
 
-ALTER SEQUENCE time_dependent_records_id2_seq start 1000;
+ALTER SEQUENCE time_dependent_records_id2_seq restart 1000;
