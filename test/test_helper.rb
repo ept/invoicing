@@ -17,7 +17,7 @@ TEST_DB_CONFIG = {
   :mysql => {:adapter => "mysql", :host => "localhost", :database => "invoicing_test",
     :username => "root", :password => ""}
 }
-TEST_DB_CONFIG_FILE = File.expand_path(File.join(File.dirname(__FILE__), '..', '..', 'config', 'database.yml'))
+TEST_DB_CONFIG_FILE = File.expand_path(File.join(File.dirname(__FILE__), '..', 'config', 'database.yml'))
 
 def database_used_for_testing
   (ENV['DATABASE'] || :mysql).to_sym

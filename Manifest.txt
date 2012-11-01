@@ -1,7 +1,6 @@
 History.txt
 LICENSE
 Manifest.txt
-PostInstall.txt
 README.rdoc
 Rakefile
 lib/invoicing.rb
