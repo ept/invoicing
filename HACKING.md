@@ -22,7 +22,7 @@ You need to set up a test database. You can modify the settings for the test dat
 `config/database.yml`, but if you stick with the defaults, you can set up the database like this:
 
     $ echo "create database ept_invoicing_test" | mysql -uroot
-    $ echo "grant all on ept_invoicing_test.* to 'build'@'%'" | mysql -uroot
+    $ echo "grant all on ept_invoicing_test.* to 'build'@'localhost'" | mysql -uroot
 
 Then run the tests by typing `rake`.
 
