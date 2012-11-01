@@ -5,7 +5,7 @@ require File.dirname(__FILE__) + '/lib/invoicing'
 # at least) causes a lot of warnings internally, by no fault of our own, which clutters
 # the output. Comment out the following four lines to see those warnings.
 class Hoe
-  RUBY_FLAGS = ENV['RUBY_FLAGS'] || "-I#{%w(lib test).join(File::PATH_SEPARATOR)}" +
+  RUBY_FLAGS = ENV['RUBY_FLAGS'] || "-I#{%w(lib .).join(File::PATH_SEPARATOR)}" +
       ((defined?(RUBY_DEBUG) && RUBY_DEBUG) ? " #{RUBY_DEBUG}" : '')
 end
 

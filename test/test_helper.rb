@@ -1,7 +1,7 @@
 require 'test/unit'
 require 'rubygems'
-require 'activerecord'
-require 'activesupport'
+require 'active_record'
+require 'active_support'
 require 'flexmock/test_unit'
 
 $: << File.join(File.dirname(__FILE__), '..', 'lib')
@@ -46,7 +46,7 @@ end
 
 connect_to_testing_database
 
-require 'setup'
+require File.join(File.dirname(__FILE__), 'setup')
 
 
 ENV['TZ'] = 'Etc/UTC' # timezone of values in database
