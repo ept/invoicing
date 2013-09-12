@@ -66,15 +66,16 @@ module Invoicing
       module_name = source_module.name.split('::').last.underscore
       class_info_method = "#{module_name}_class_info"
 
-      previous_info = if calling_class.private_instance_methods(true).include?(class_info_method)
-        # acts_as has been called before on the same class, or a superclass
-        calling_class.send(class_info_method)
-      else
-        # acts_as is being called for the first time -- do the mixins!
-        calling_class.send(:include, source_module)
-        calling_class.send(:extend,  source_module::ClassMethods) if defined?(source_module::ClassMethods)
-        nil # no previous_info
-      end
+      previous_info =
+        if calling_class.respond_to?(class_info_method, true)
+          # acts_as has been called before on the same class, or a superclass
+          calling_class.send(class_info_method) || calling_class.superclass.send(class_info_method)
+        else
+          # acts_as is being called for the first time -- do the mixins!
+          calling_class.send(:include, source_module)
+          calling_class.send(:extend,  source_module::ClassMethods) if defined?(source_module::ClassMethods)
+          nil # no previous_info
+        end
 
       # Instantiate the ClassInfo::Base subclass and assign it to an instance variable in calling_class
       class_info_class = source_module.const_get('ClassInfo')
@@ -86,7 +87,7 @@ module Invoicing
       calling_class.class_eval <<-CLASSEVAL
         class << self
           def #{class_info_method}
-            if superclass.private_instance_methods(true).include?("#{class_info_method}")
+            if superclass.respond_to?("#{class_info_method}", true)
               @#{class_info_method} ||= superclass.send("#{class_info_method}")
             end
             @#{class_info_method}

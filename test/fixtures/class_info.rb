@@ -21,7 +21,7 @@ ClassInfoTestRecord.create!(value: 3, type: "ClassInfoTestSubSubclass")
 
 connection.create_table :class_info_test2_records do |t|
   t.integer :value
-  t.integer :okapi
+  t.string  :okapi
 end
 
 class ClassInfoTest2Record < ActiveRecord::Base

@@ -123,8 +123,8 @@ class CurrencyValueTest < Test::Unit::TestCase
     assert_equal '', record.tax_amount_formatted
     assert record.valid?
     record.save!
-    assert_equal([{'amount' => '1.0000', 'tax_amount' => nil}],
-      ActiveRecord::Base.connection.select_all("SELECT amount, tax_amount FROM currency_value_records WHERE id=#{record.id}"))
+    assert_equal([{'amount' => 1, 'tax_amount' => nil}],
+      ActiveRecord::Base.connection.select_all("SELECT amount, tax_amount FROM currency_value_records WHERE id=#{record.id}").to_ary)
   end
 
   def test_assign_invalid_value_to_new_record_with_numericality_validation
@@ -142,8 +142,8 @@ class CurrencyValueTest < Test::Unit::TestCase
     assert_equal '', record.tax_amount_formatted
     assert record.valid?
     record.save!
-    assert_equal([{'amount' => '1.0000', 'tax_amount' => '0.0000'}],
-      ActiveRecord::Base.connection.select_all("SELECT amount, tax_amount FROM currency_value_records WHERE id=#{record.id}"))
+    assert_equal([{'amount' => 1, 'tax_amount' => 0}],
+      ActiveRecord::Base.connection.select_all("SELECT amount, tax_amount FROM currency_value_records WHERE id=#{record.id}").to_ary)
   end
 
   def test_overwrite_existing_record_with_valid_value
@@ -154,8 +154,8 @@ class CurrencyValueTest < Test::Unit::TestCase
     assert_equal '12.34', record.amount_before_type_cast
     assert_equal "€12.34", record.amount_formatted
     record.save!
-    assert_equal([{'amount' => '12.3400', 'currency_code' => 'EUR'}],
-      ActiveRecord::Base.connection.select_all("SELECT amount, currency_code FROM currency_value_records WHERE id=#{record.id}"))
+    assert_equal([{'amount' => 12.34, 'currency_code' => 'EUR'}],
+      ActiveRecord::Base.connection.select_all("SELECT amount, currency_code FROM currency_value_records WHERE id=#{record.id}").to_ary)
   end
 
   def test_overwrite_existing_record_with_nil
@@ -165,8 +165,8 @@ class CurrencyValueTest < Test::Unit::TestCase
     assert_nil record.tax_amount_before_type_cast
     assert_equal '', record.tax_amount_formatted
     record.save!
-    assert_equal([{'amount' => '8888.0000', 'tax_amount' => nil, 'currency_code' => 'JPY'}],
-      ActiveRecord::Base.connection.select_all("SELECT amount, tax_amount, currency_code FROM currency_value_records WHERE id=#{record.id}"))
+    assert_equal([{'amount' => 8888, 'tax_amount' => nil, 'currency_code' => 'JPY'}],
+      ActiveRecord::Base.connection.select_all("SELECT amount, tax_amount, currency_code FROM currency_value_records WHERE id=#{record.id}").to_ary)
   end
 
   def test_rounding_on_new_record_with_currency_column
@@ -174,8 +174,8 @@ class CurrencyValueTest < Test::Unit::TestCase
     assert_equal BigDecimal('1235'), record.amount
     assert_equal '1234.5678', record.amount_before_type_cast
     record.save!
-    assert_equal([{'amount' => '1235.0000'}],
-      ActiveRecord::Base.connection.select_all("SELECT amount FROM currency_value_records WHERE id=#{record.id}"))
+    assert_equal([{'amount' => 1235}],
+      ActiveRecord::Base.connection.select_all("SELECT amount FROM currency_value_records WHERE id=#{record.id}").to_ary)
   end
 
   def test_rounding_on_overwriting_record_with_currency_column
@@ -184,8 +184,8 @@ class CurrencyValueTest < Test::Unit::TestCase
     assert_equal BigDecimal('3.33'), record.amount
     assert_equal 10.0/3.0, record.amount_before_type_cast
     record.save!
-    assert_equal([{'amount' => '3.3300'}],
-      ActiveRecord::Base.connection.select_all("SELECT amount FROM currency_value_records WHERE id=1"))
+    assert_equal([{'amount' => 3.33}],
+      ActiveRecord::Base.connection.select_all("SELECT amount FROM currency_value_records WHERE id=1").to_ary)
   end
 
   def test_rounding_on_new_record_with_default_currency
@@ -193,8 +193,8 @@ class CurrencyValueTest < Test::Unit::TestCase
     assert_equal BigDecimal('1234.55'), record.amount
     assert_equal '1234.5678', record.amount_before_type_cast
     record.save!
-    assert_equal([{'amount' => '1234.5500'}],
-      ActiveRecord::Base.connection.select_all("SELECT amount FROM no_currency_column_records WHERE id=#{record.id}"))
+    assert_equal([{'amount' => 1234.55}],
+      ActiveRecord::Base.connection.select_all("SELECT amount FROM no_currency_column_records WHERE id=#{record.id}").to_ary)
   end
 
   def test_rounding_on_overwriting_record_with_default_currency
@@ -203,7 +203,7 @@ class CurrencyValueTest < Test::Unit::TestCase
     assert_equal BigDecimal('98.75'), record.amount
     assert_equal '98.7654321', record.amount_before_type_cast
     record.save!
-    assert_equal([{'amount' => '98.7500'}],
-      ActiveRecord::Base.connection.select_all("SELECT amount FROM no_currency_column_records WHERE id=1"))
+    assert_equal([{'amount' => 98.75}],
+      ActiveRecord::Base.connection.select_all("SELECT amount FROM no_currency_column_records WHERE id=1").to_ary)
   end
 end
