@@ -47,73 +47,73 @@ end
 #####################
 
 class FindSubclassesTest < Test::Unit::TestCase
-  
+
   def test_known_subclasses
     # All subclasses of TestBaseclass except for TestSubclassNotInDatabase
     expected = ['TestBaseclass', 'TestModule::TestInsideModuleSubclass', 'TestOutsideModuleSubSubclass',
       'TestSubSubclass', 'TestSubclass', 'TestSubclassInAnotherFile']
     assert_equal expected, TestBaseclass.known_subclasses.map{|cls| cls.name}.sort
   end
-  
+
   def test_known_subclasses_for_subtype
     expected = ['TestSubSubclass', 'TestSubclass']
     assert_equal expected, TestSubclass.known_subclasses.map{|cls| cls.name}.sort
   end
-  
+
   def test_error_when_unknown_type_is_encountered
     assert_raise ActiveRecord::SubclassNotFound do
       SomeSillySuperclass.known_subclasses
     end
   end
-  
+
   def test_class_method_condition_in_find
     assert_equal [1, 2, 4], TestBaseclass.all(:conditions => {:coolness_factor => 3}).map{|r| r.id}.sort
   end
-  
+
   def test_class_method_condition_in_named_scope
     assert_equal [6], TestBaseclass.with_coolness(999).map{|r| r.id}
   end
-  
+
   def test_class_method_condition_combined_with_column_condition_as_string_list
     assert_equal [2, 4], TestBaseclass.with_coolness(3).all(:conditions => ["value LIKE ?", 'B%']).map{|r| r.id}.sort
   end
-  
+
   def test_class_method_condition_combined_with_column_condition_as_hash
     assert_equal [1], TestBaseclass.scoped(:conditions => {:value => 'Mooo!', :coolness_factor => 3}).all.map{|r| r.id}
   end
-  
+
   def test_class_method_condition_combined_with_column_condition_on_joined_table_expressed_as_string
     conditions = {'find_subclasses_associates.value' => 'Cool stuff', 'find_subclasses_records.coolness_factor' => 3}
     assert_equal [1], TestBaseclass.all(:joins => :associate, :conditions => conditions).map{|r| r.id}
   end
-  
+
   def test_class_method_condition_combined_with_column_condition_on_joined_table_expressed_as_hash
     conditions = {:find_subclasses_associates => {:value => 'Cool stuff'},
                   :find_subclasses_records    => {:coolness_factor => 3}}
     assert_equal [1], TestBaseclass.all(:joins => :associate, :conditions => conditions).map{|r| r.id}
   end
-  
+
   def test_class_method_condition_with_same_table_name
     conditions = {'find_subclasses_records.value' => 'Baaa!', 'find_subclasses_records.coolness_factor' => 3}
     assert_equal [2, 4], TestBaseclass.all(:conditions => conditions).map{|r| r.id}.sort
   end
-  
+
   def test_class_method_condition_with_list_of_alternatives
     assert_equal [3, 6], TestBaseclass.all(:conditions => {:coolness_factor => [5, 999]}).map{|r| r.id}.sort
   end
-  
+
   def test_class_method_condition_with_range_of_alternatives
     assert_equal [1, 2, 3, 4, 6], TestBaseclass.all(:conditions => {:coolness_factor => 1..1000}).map{|r| r.id}.sort
   end
-  
+
   def test_class_method_condition_invoked_on_subclass
     assert_equal [2], TestSubclass.with_coolness(3).all.map{|r| r.id}
   end
-  
+
   def test_class_method_condition_false_type_coercion
     assert_equal [5], TestBaseclass.find(:all, :conditions => {:coolness_factor => false}).map{|r| r.id}
   end
-  
+
   def test_class_method_condition_true_type_coercion
     assert_equal [1, 2, 3, 4, 6], TestBaseclass.all(:conditions => {:coolness_factor => true}).map{|r| r.id}.sort
   end

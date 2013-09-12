@@ -29,7 +29,7 @@ end
 def connect_to_testing_database
   # db_config = TEST_DB_CONFIG[database_used_for_testing]
   # db_config_from_file = false
-  
+
   # if File.exists? TEST_DB_CONFIG_FILE
   #   yaml = YAML::load File.open(TEST_DB_CONFIG_FILE)
   #   if yaml && yaml['test'] && (yaml['test']['adapter'].to_s == database_used_for_testing.to_s)
@@ -61,7 +61,7 @@ Time.zone = 'Etc/UTC' # timezone for output (when using Time#in_time_zone)
 #         ActiveRecord::Base.connection.increment_open_transactions
 #         ActiveRecord::Base.connection.begin_db_transaction
 #       end
-      
+
 #       def teardown
 #         ActiveRecord::Base.connection.rollback_db_transaction
 #         ActiveRecord::Base.connection.decrement_open_transactions

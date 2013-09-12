@@ -12,7 +12,7 @@ module LineItemMethods
     :tax_rate_id => :tax_rate_id2, :price_id => :price_id2,
     :quantity => :quantity2, :creator_id => :creator_id2, :ledger_item => :ledger_item2
   }
-  
+
   def description2
     "moo"
   end
@@ -47,7 +47,7 @@ class UUIDNotPresentLineItem < ActiveRecord::Base
   set_inheritance_column 'type2'
   set_table_name 'line_item_records'
   include LineItemMethods
-  
+
   def get_class_info
     line_item_class_info
   end
@@ -64,15 +64,15 @@ end
 ####### The actual tests
 
 class LineItemTest < Test::Unit::TestCase
-  
+
   def test_net_amount_is_currency_value
     assert_equal '$432.10', UntaxedLineItem.find(4).net_amount2_formatted
   end
-  
+
   def test_tax_amount_is_currency_value
     assert_equal '£15.00', SuperLineItem.find(1).tax_amount2_formatted
   end
-  
+
   def test_gross_amount
     assert_equal BigDecimal('115'), SuperLineItem.find(1).gross_amount
   end
@@ -80,7 +80,7 @@ class LineItemTest < Test::Unit::TestCase
   def test_gross_amount_formatted
     assert_equal '£115.00', SuperLineItem.find(1).gross_amount_formatted
   end
-  
+
   def test_assign_uuid_to_new_record
     record = SuperLineItem.new
     begin
@@ -96,7 +96,7 @@ class LineItemTest < Test::Unit::TestCase
       puts "Warning: uuid gem not installed -- not testing UUID generation"
     end
   end
-  
+
   def test_uuid_gem_not_present
     begin
       real_uuid = Object.send(:remove_const, :UUID) rescue nil
@@ -118,22 +118,22 @@ class LineItemTest < Test::Unit::TestCase
       SuperLineItem.find(1).ledger_item # not ledger_item2
     end
   end
-  
+
   def test_currency
     assert_equal 'GBP', SubLineItem.find(2).currency
   end
-  
+
   def test_in_effect_scope
     assert_equal [1,2,3,4,5,6,7,8], SuperLineItem.all.map{|i| i.id}.sort
     assert_equal [1,2,3,4,5,6], SuperLineItem.in_effect.map{|i| i.id}.sort
   end
-  
+
   def test_sorted_scope
     assert_equal [4,2,1,5,3,6,7,8], SuperLineItem.sorted(:tax_point).map{|i| i.id}
   end
-  
+
   def test_sorted_scope_with_non_existent_column
     assert_equal [1,2,3,4,5,6,7,8], SuperLineItem.sorted(:this_column_does_not_exist).map{|i| i.id}
   end
-  
+
 end

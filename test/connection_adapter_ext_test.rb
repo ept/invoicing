@@ -7,7 +7,7 @@ class ConnectionAdapterExtTest < Test::Unit::TestCase
   end
   def teardown
   end
-  
+
   def using_database(database_type)
     if database_type.to_sym == database_used_for_testing
       # If the test is for the main database type of this test suite, just run it
@@ -23,7 +23,7 @@ class ConnectionAdapterExtTest < Test::Unit::TestCase
         connect_to_testing_database
       end
     end
-  end  
+  end
 
   def test_conditional_function_as_mysql
     using_database :mysql do

@@ -2,7 +2,7 @@ module Invoicing
   # Extensions specific to certain database adapters. Currently only MySQL and PostgreSQL are
   # supported.
   class ConnectionAdapterExt
-  
+
     # Creates a database-specific SQL fragment for evaluating a three-legged conditional function
     # in a query.
     def self.conditional_function(condition, value_if_true, value_if_false)
@@ -15,7 +15,7 @@ module Invoicing
           raise "Database adapter #{ActiveRecord::Base.connection.adapter_name} not supported by invoicing gem"
       end
     end
-    
+
     # Suppose <tt>A has_many B</tt>, and you want to select all As, counting for each A how many
     # Bs it has. In MySQL you can just say:
     #   SELECT A.*, COUNT(B.id) AS number_of_bs FROM A LEFT JOIN B on A.id = B.a_id GROUP BY A.id
