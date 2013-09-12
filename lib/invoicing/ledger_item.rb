@@ -317,31 +317,35 @@ module Invoicing
         include Invoicing::LedgerItem::RenderUBL
 
         # Dynamically created named scopes
-        named_scope :sent_by, lambda{ |sender_id|
+        scope :sent_by, lambda{ |sender_id|
           { :conditions => {info.method(:sender_id) => sender_id} }
         }
 
-        named_scope :received_by, lambda{ |recipient_id|
+        scope :received_by, lambda{ |recipient_id|
           { :conditions => {info.method(:recipient_id) => recipient_id} }
         }
 
-        named_scope :sent_or_received_by, lambda{ |sender_or_recipient_id|
+        scope :sent_or_received_by, lambda{ |sender_or_recipient_id|
           sender_col = connection.quote_column_name(info.method(:sender_id))
           recipient_col = connection.quote_column_name(info.method(:recipient_id))
           { :conditions => ["#{sender_col} = ? OR #{recipient_col} = ?",
                             sender_or_recipient_id, sender_or_recipient_id] }
         }
 
-        named_scope :in_effect, :conditions => {info.method(:status) => ['closed', 'cleared']}
+        scope :in_effect, lambda {
+          { :conditions => {info.method(:status) => ['closed', 'cleared']} }
+        }
 
-        named_scope :open_or_pending, :conditions => {info.method(:status) => ['open', 'pending']}
+        scope :open_or_pending, lambda {
+          { :conditions => {info.method(:status) => ['open', 'pending']} }
+        }
 
-        named_scope :due_at, lambda{ |date|
+        scope :due_at, lambda{ |date|
           due_date = connection.quote_column_name(info.method(:due_date))
           {:conditions => ["#{due_date} <= ? OR #{due_date} IS NULL", date]}
         }
 
-        named_scope :sorted, lambda{|column|
+        scope :sorted, lambda{|column|
           column = ledger_item_class_info.method(column).to_s
           if column_names.include?(column)
             {:order => "#{connection.quote_column_name(column)}, #{connection.quote_column_name(primary_key)}"}
@@ -350,7 +354,7 @@ module Invoicing
           end
         }
 
-        named_scope :exclude_empty_invoices, lambda{
+        scope :exclude_empty_invoices, lambda{
           line_items_assoc_id = info.method(:line_items).to_sym
           line_items_refl = reflections[line_items_assoc_id]
           line_items_table = line_items_refl.quoted_table_name

@@ -192,11 +192,12 @@ module Invoicing
 
         Invoicing::ClassInfo.acts_as(Invoicing::TimeDependent, self, args)
 
+        # TODO: Remove this replaced_by dependency, and let dependent class handle it.
         # Create replaced_by association if it doesn't exist yet
-        replaced_by_id = time_dependent_class_info.method(:replaced_by_id)
-        unless respond_to? :replaced_by
-          belongs_to :replaced_by, :class_name => class_name, :foreign_key => replaced_by_id
-        end
+        # replaced_by_id = time_dependent_class_info.method(:replaced_by_id)
+        # unless respond_to? :replaced_by
+        #   belongs_to :replaced_by, :class_name => class_name, :foreign_key => replaced_by_id
+        # end
 
         # Create value_at and value_now method aliases
         value_method = time_dependent_class_info.method(:value).to_s

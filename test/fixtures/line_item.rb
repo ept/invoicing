@@ -15,13 +15,13 @@ connection.create_table :line_item_records do |t|
   t.timestamps
 end
 
-class LineItemRecord < ActiveRecord::Base
+class SuperLineItem < ActiveRecord::Base
+  self.table_name = "line_item_records"
 end
 
-class SuperLineItem < LineItemRecord; end
-class SubLineItem < LineItemRecord; end
-class OtherLineItem < LineItemRecord; end
-class UntaxedLineItem < LineItemRecord; end
+class SubLineItem < SuperLineItem; end
+class OtherLineItem < SuperLineItem; end
+class UntaxedLineItem < SuperLineItem; end
 
 
 line_item_entries = [
@@ -51,5 +51,5 @@ line_item_entries.each do |entry|
   params[:created_at]     = entry[11]
   params[:updated_at]     = entry[12]
 
-  LineItemRecord.create!(params)
+  SuperLineItem.create!(params)
 end

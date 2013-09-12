@@ -21,12 +21,14 @@ end
 class LedgerItemRecord < ActiveRecord::Base
 end
 
-class MyInvoice < LedgerItemRecord; end
-class InvoiceSubtype < LedgerItemRecord; end
-class MyCreditNote < LedgerItemRecord; end
-class MyPayment < LedgerItemRecord; end
-class MyLedgerItem < LedgerItemRecord; end
-class CorporationTaxLiability < LedgerItemRecord; end
+class MyLedgerItem < ActiveRecord::Base
+  self.table_name = "ledger_item_records"
+end
+class MyInvoice < MyLedgerItem; end
+class InvoiceSubtype < MyInvoice; end
+class MyCreditNote < MyLedgerItem; end
+class MyPayment < MyLedgerItem; end
+class CorporationTaxLiability < MyLedgerItem; end
 
 
 # Invoice 10 is set to not add up correctly; total_amount is 0.01 too little to test error handling
@@ -63,5 +65,5 @@ ledger_item_entries.each do |entry|
   params[:created_at]   = entry[14]
   params[:updated_at]   = entry[15]
 
-  LedgerItemRecord.create!(params)
+  MyLedgerItem.create!(params)
 end

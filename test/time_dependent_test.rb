@@ -4,9 +4,7 @@ class CachedRecordTest < Test::Unit::TestCase
 
   class TimeDependentRecord < ActiveRecord::Base
     # All columns are renamed to test renaming
-    set_primary_key 'id2'
-    acts_as_time_dependent :id => 'id2', :valid_from => 'valid_from2', :valid_until => 'valid_until2',
-      :replaced_by_id => 'replaced_by_id2', :value => 'value2', :is_default => 'is_default2'
+    acts_as_time_dependent
   end
 
 

@@ -16,7 +16,7 @@ class CurrencyValueTest < Test::Unit::TestCase
 
   # In Finland and the Netherlands, Euro amounts are commonly rounded to the nearest 5 cents.
   class EurosInFinlandRecord < ActiveRecord::Base
-    set_table_name 'no_currency_column_records'
+    self.table_name = "no_currency_column_records"
     acts_as_currency_value :amount, :currency_code => 'EUR', :round => 0.05, :space => true
   end
 

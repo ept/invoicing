@@ -3,9 +3,8 @@ require File.join(File.dirname(__FILE__), 'test_helper.rb')
 class CachedRecordTest < Test::Unit::TestCase
 
   class CachedRecord < ActiveRecord::Base
-    set_primary_key 'id2'
-    acts_as_cached_record :id => 'id2'
-    has_many :referrers, :class_name => 'RefersToCachedRecord', :foreign_key => 'cached_record_id'
+    acts_as_cached_record id: 'id'
+    has_many :referrers, class_name: 'RefersToCachedRecord', foreign_key: 'cached_record_id'
   end
 
   class RefersToCachedRecord < ActiveRecord::Base
@@ -13,9 +12,8 @@ class CachedRecordTest < Test::Unit::TestCase
   end
 
   class CachedRecordMockDatabase < ActiveRecord::Base
-    set_table_name 'cached_records'
-    set_primary_key 'id2'
-    acts_as_cached_record :id => 'id2'
+    self.table_name = "cached_records"
+    acts_as_cached_record id: "id"
 
     def self.connection
       @connection_mock ||= FlexMock.new('connection')

@@ -22,9 +22,7 @@ end
 ####### Classes for use in the tests (also used by LedgerItemTest)
 
 class SuperLineItem < ActiveRecord::Base
-  set_primary_key 'id2'
-  set_inheritance_column 'type2'
-  set_table_name 'line_item_records'
+  self.table_name = "line_item_records"
   include LineItemMethods
   acts_as_line_item RENAMED_METHODS
   belongs_to :ledger_item2, :class_name => 'MyLedgerItem', :foreign_key => 'ledger_item_id2'
@@ -43,9 +41,7 @@ class UntaxedLineItem < SuperLineItem
 end
 
 class UUIDNotPresentLineItem < ActiveRecord::Base
-  set_primary_key 'id2'
-  set_inheritance_column 'type2'
-  set_table_name 'line_item_records'
+  self.table_name = "line_item_records"
   include LineItemMethods
 
   def get_class_info
@@ -54,9 +50,7 @@ class UUIDNotPresentLineItem < ActiveRecord::Base
 end
 
 class OverwrittenMethodsNotPresentLineItem < ActiveRecord::Base
-  set_primary_key 'id2'
-  set_inheritance_column 'type2'
-  set_table_name 'line_item_records'
+  self.table_name = "line_item_records"
   acts_as_line_item LineItemMethods::RENAMED_METHODS
 end
 

@@ -81,7 +81,7 @@ module Invoicing
 
       def reload_cache
         @cache = {}
-        model_class.find(:all).each {|obj| @cache[get(obj, :id)] = obj }
+        model_class.all.each {|obj| @cache[get(obj, :id)] = obj }
       end
 
       # Returns one object from the cache, given its ID.

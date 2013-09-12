@@ -53,7 +53,7 @@ class TaxableTest < Test::Unit::TestCase
   end
 
   class NonsenseClass < ActiveRecord::Base
-    set_table_name 'taxable_record'
+    self.table_name = "taxable_records"
   end
 
 

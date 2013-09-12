@@ -54,12 +54,10 @@ end
 ####### Classes for use in the tests
 
 class MyLedgerItem < ActiveRecord::Base
-  set_primary_key 'id2'
-  set_inheritance_column 'type2'
-  set_table_name 'ledger_item_records'
+  self.table_name = "ledger_item_records"
   include LedgerItemMethods
   acts_as_ledger_item RENAMED_METHODS
-  has_many :line_items2, :class_name => 'SuperLineItem', :foreign_key => 'ledger_item_id2'
+  has_many :line_items2, class_name: "SuperLineItem", foreign_key: "ledger_item_id"
 end
 
 class MyInvoice < MyLedgerItem
@@ -84,9 +82,7 @@ class CorporationTaxLiability < MyLedgerItem
 end
 
 class UUIDNotPresentLedgerItem < ActiveRecord::Base
-  set_primary_key 'id2'
-  set_inheritance_column 'type2'
-  set_table_name 'ledger_item_records'
+  self.table_name = "ledger_item_records"
   include LedgerItemMethods
 
   def get_class_info
@@ -95,9 +91,7 @@ class UUIDNotPresentLedgerItem < ActiveRecord::Base
 end
 
 class OverwrittenMethodsNotPresentLedgerItem < ActiveRecord::Base
-  set_primary_key 'id2'
-  set_inheritance_column 'type2'
-  set_table_name 'ledger_item_records'
+  self.table_name = "ledger_item_records"
   acts_as_invoice LedgerItemMethods::RENAMED_METHODS
 end
 

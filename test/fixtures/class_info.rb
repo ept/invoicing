@@ -10,7 +10,7 @@ end
 
 class ClassInfoTestSubclass    < ClassInfoTestRecord; end
 class ClassInfoTestSubclass2   < ClassInfoTestRecord; end
-class ClassInfoTestSubSubclass < ClassInfoTestRecord; end
+class ClassInfoTestSubSubclass < ClassInfoTestSubclass2; end
 
 
 ClassInfoTestRecord.create!(value: 2, type: "ClassInfoTestRecord")
