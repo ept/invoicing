@@ -683,7 +683,6 @@ module Invoicing
       def account_summaries(self_id, options={})
         info = ledger_item_class_info
         ext = Invoicing::ConnectionAdapterExt
-        scope = scope(:find)
 
         debit_classes  = select_matching_subclasses(:debit_when_sent_by_self, true,  self.table_name, self.inheritance_column).map{|c| c.name}
         credit_classes = select_matching_subclasses(:debit_when_sent_by_self, false, self.table_name, self.inheritance_column).map{|c| c.name}
@@ -712,13 +711,13 @@ module Invoicing
 
         # Structure borrowed from ActiveRecord::Base.construct_finder_sql
         # add_joins!(sql, nil, scope)
-        add_conditions!(sql, filter_conditions, scope)
+        add_conditions!(sql, filter_conditions)
 
         sql << " GROUP BY other_id, currency"
 
-        add_order!(sql, nil, scope)
-        add_limit!(sql, {}, scope)
-        add_lock!(sql, {}, scope)
+        add_order!(sql, nil)
+        add_limit!(sql, {})
+        add_lock!(sql, {})
 
         rows = connection.select_all(sql)
 
@@ -804,24 +803,23 @@ module Invoicing
       end
 
       # TODO: Remove this
-      def add_joins!(sql, joins, scope = :auto)
-        scope = scope(:find) if :auto == scope
-        merged_joins = scope && scope[:joins] && joins ? merge_joins(scope[:joins], joins) : (joins || scope && scope[:joins])
-        case merged_joins
-        when Symbol, Hash, Array
-          if array_of_strings?(merged_joins)
-            sql << merged_joins.join(' ') + " "
-          else
-            join_dependency = ActiveRecord::Associations::ClassMethods::InnerJoinDependency.new(self, merged_joins, nil)
-            sql << " #{join_dependency.join_associations.collect { |assoc| assoc.association_join }.join} "
-          end
-        when String
-          sql << " #{merged_joins} "
-        end
-      end
+      # def add_joins!(sql, joins, scope = :auto)
+      #   merged_joins = scope && scope[:joins] && joins ? merge_joins(scope[:joins], joins) : (joins || scope && scope[:joins])
+      #   case merged_joins
+      #   when Symbol, Hash, Array
+      #     if array_of_strings?(merged_joins)
+      #       sql << merged_joins.join(' ') + " "
+      #     else
+      #       join_dependency = ActiveRecord::Associations::ClassMethods::InnerJoinDependency.new(self, merged_joins, nil)
+      #       sql << " #{join_dependency.join_associations.collect { |assoc| assoc.association_join }.join} "
+      #     end
+      #   when String
+      #     sql << " #{merged_joins} "
+      #   end
+      # end
 
       # TODO: Remove this
-      def add_conditions!(sql, conditions, scope = :auto)
+      def add_conditions!(sql, conditions)
         # scope = scope(:find) if :auto == scope
         conditions = [conditions]
         # conditions << scope[:conditions] if scope
@@ -831,7 +829,7 @@ module Invoicing
       end
 
       # TODO: Remove this
-      def add_order!(sql, order, scope = :auto)
+      def add_order!(sql, order)
         # scope = scope(:find) if :auto == scope
         # scoped_order = scope[:order] if scope
         # if order
@@ -844,7 +842,7 @@ module Invoicing
         # end
       end
 
-      def add_limit!(sql, options, scope = :auto)
+      def add_limit!(sql, options)
         # scope = scope(:find) if :auto == scope
 
         # if scope
@@ -855,7 +853,7 @@ module Invoicing
         # connection.add_limit_offset!(sql, options)
       end
 
-      def add_lock!(sql, options, scope = :auto)
+      def add_lock!(sql, options)
         # scope = scope(:find) if :auto == scope
         # options = options.reverse_merge(:lock => scope[:lock]) if scope
         # connection.add_lock!(sql, options)
