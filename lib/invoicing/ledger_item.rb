@@ -700,7 +700,7 @@ module Invoicing
         sender_is_self    = merge_conditions({info.method(:sender_id)    => self_id})
         recipient_is_self = merge_conditions({info.method(:recipient_id) => self_id})
         other_id_column = ext.conditional_function(sender_is_self, cols[:recipient_id], cols[:sender_id])
-        accept_status = sanitize_sql_hash_for_conditions(info.method(:status) => (options[:with_status] || %w(closed cleared)))
+        accept_status = merge_conditions(info.method(:status) => (options[:with_status] || %w(closed cleared)))
         filter_conditions = "#{accept_status} AND (#{sender_is_self} OR #{recipient_is_self})"
 
         sql = "SELECT #{other_id_column} AS other_id, #{cols[:currency]} AS currency, " +
@@ -708,10 +708,10 @@ module Invoicing
           "SUM(#{ext.conditional_function(debit_when_received,  cols[:total_amount], 0)}) AS purchase_payments, " +
           "SUM(#{ext.conditional_function(credit_when_sent,     cols[:total_amount], 0)}) AS sale_receipts, " +
           "SUM(#{ext.conditional_function(credit_when_received, cols[:total_amount], 0)}) AS purchases " +
-          "FROM #{(scope && scope[:from]) || quoted_table_name} "
+          "FROM #{quoted_table_name} "
 
         # Structure borrowed from ActiveRecord::Base.construct_finder_sql
-        add_joins!(sql, nil, scope)
+        # add_joins!(sql, nil, scope)
         add_conditions!(sql, filter_conditions, scope)
 
         sql << " GROUP BY other_id, currency"
@@ -730,7 +730,7 @@ module Invoicing
           summary = {:balance => BigDecimal('0'), :currency => currency}
 
           {:sales => 1, :purchases => -1, :sale_receipts => -1, :purchase_payments => 1}.each_pair do |field, factor|
-            summary[field] = BigDecimal(row[field])
+            summary[field] = BigDecimal(row[field].to_s)
             summary[:balance] += BigDecimal(factor.to_s) * summary[field]
           end
 
@@ -822,9 +822,9 @@ module Invoicing
 
       # TODO: Remove this
       def add_conditions!(sql, conditions, scope = :auto)
-        scope = scope(:find) if :auto == scope
+        # scope = scope(:find) if :auto == scope
         conditions = [conditions]
-        conditions << scope[:conditions] if scope
+        # conditions << scope[:conditions] if scope
         conditions << type_condition if finder_needs_type_condition?
         merged_conditions = merge_conditions(*conditions)
         sql << "WHERE #{merged_conditions} " unless merged_conditions.blank?
@@ -832,16 +832,16 @@ module Invoicing
 
       # TODO: Remove this
       def add_order!(sql, order, scope = :auto)
-        scope = scope(:find) if :auto == scope
-        scoped_order = scope[:order] if scope
-        if order
-          sql << " ORDER BY #{order}"
-          if scoped_order && scoped_order != order
-            sql << ", #{scoped_order}"
-          end
-        else
-          sql << " ORDER BY #{scoped_order}" if scoped_order
-        end
+        # scope = scope(:find) if :auto == scope
+        # scoped_order = scope[:order] if scope
+        # if order
+        #   sql << " ORDER BY #{order}"
+        #   if scoped_order && scoped_order != order
+        #     sql << ", #{scoped_order}"
+        #   end
+        # else
+        #   sql << " ORDER BY #{scoped_order}" if scoped_order
+        # end
       end
 
       def add_limit!(sql, options, scope = :auto)

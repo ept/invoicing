@@ -154,16 +154,15 @@ module Invoicing
           extend Invoicing::FindSubclasses
 
           # Dynamically created named scopes
-          scope :in_effect, lambda{
-            ledger_assoc_id = line_item_class_info.method(:ledger_item).to_sym
-            ledger_refl = reflections[ledger_assoc_id]
+          scope :in_effect, -> {
+            ledger_assoc = line_item_class_info.method(:ledger_item).to_sym
+            ledger_refl = reflections[ledger_assoc]
             ledger_table = ledger_refl.table_name # not quoted_table_name because it'll be quoted again
             status_column = ledger_refl.klass.send(:ledger_item_class_info).method(:status)
-            { :joins => ledger_assoc_id,
-              :conditions => {"#{ledger_table}.#{status_column}" => ['closed', 'cleared'] } }
+            joins(ledger_assoc).where("#{ledger_table}.#{status_column}" => ['closed', 'cleared'])
           }
 
-          scope :sorted, lambda{|column|
+          scope :sorted, ->(column) {
             column = line_item_class_info.method(column).to_s
             if column_names.include?(column)
               {:order => "#{connection.quote_column_name(column)}, #{connection.quote_column_name(primary_key)}"}
