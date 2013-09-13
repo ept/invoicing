@@ -53,3 +53,8 @@ line_item_entries.each do |entry|
 
   SuperLineItem.create!(params)
 end
+
+Object.send(:remove_const, :SuperLineItem  )
+Object.send(:remove_const, :SubLineItem    )
+Object.send(:remove_const, :OtherLineItem  )
+Object.send(:remove_const, :UntaxedLineItem)

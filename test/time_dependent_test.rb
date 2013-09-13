@@ -10,41 +10,41 @@ class CachedRecordTest < Test::Unit::TestCase
 
   def test_valid_records_during_single_period
     records = TimeDependentRecord.valid_records_during(DateTime.parse('2009-01-01'), DateTime.parse('2009-03-01'))
-    assert_equal [3, 6, 8, 10], records.map{|r| r.id2}.sort
+    assert_equal [3, 6, 8, 10], records.map{|r| r.id}.sort
   end
 
   def test_valid_records_during_single_period_ending_on_change_date
     records = TimeDependentRecord.valid_records_during(DateTime.parse('2008-10-31'), DateTime.parse('2009-01-01'))
-    assert_equal [1, 2, 5, 8, 10], records.map{|r| r.id2}.sort
+    assert_equal [1, 2, 5, 8, 10], records.map{|r| r.id}.sort
   end
 
   def test_valid_records_during_transition_period
     records = TimeDependentRecord.valid_records_during(DateTime.parse('2008-09-01'), DateTime.parse('2009-02-28'))
-    assert_equal [1, 2, 5, 6, 8, 10], records.map{|r| r.id2}.sort
+    assert_equal [1, 2, 5, 6, 8, 10], records.map{|r| r.id}.sort
   end
 
   def test_valid_records_during_period_after_unreplaced_expiry
     records = TimeDependentRecord.valid_records_during(DateTime.parse('2011-09-01'), DateTime.parse('2011-09-02'))
-    assert_equal [4, 9, 10], records.map{|r| r.id2}.sort
+    assert_equal [4, 9, 10], records.map{|r| r.id}.sort
   end
 
   def test_valid_records_at_boundary
     records = TimeDependentRecord.valid_records_at(DateTime.parse('2010-01-01'))
-    assert_equal [4, 7, 8, 10], records.map{|r| r.id2}.sort
+    assert_equal [4, 7, 8, 10], records.map{|r| r.id}.sort
   end
 
   def test_valid_records_at_middle_of_period
     records = TimeDependentRecord.valid_records_at(DateTime.parse('2009-07-01'))
-    assert_equal [3, 6, 8, 10], records.map{|r| r.id2}.sort
+    assert_equal [3, 6, 8, 10], records.map{|r| r.id}.sort
   end
 
   def test_valid_records_at_just_before_end_of_period
     records = TimeDependentRecord.valid_records_at(DateTime.parse('2008-12-31 23:59:59'))
-    assert_equal [1, 2, 5, 8, 10], records.map{|r| r.id2}.sort
+    assert_equal [1, 2, 5, 8, 10], records.map{|r| r.id}.sort
   end
 
   def test_default_record_at_returns_default
-    assert_equal 9, TimeDependentRecord.default_record_at(DateTime.parse('2011-04-01')).id2
+    assert_equal 9, TimeDependentRecord.default_record_at(DateTime.parse('2011-04-01')).id
   end
 
   def test_default_record_at_where_there_is_no_default
@@ -56,7 +56,7 @@ class CachedRecordTest < Test::Unit::TestCase
   end
 
   def test_default_value_at_alias
-    assert_equal 'Six', TimeDependentRecord.default_value2_at(DateTime.parse('2009-12-31 23:59:59'))
+    assert_equal 'Six', TimeDependentRecord.default_value_at(DateTime.parse('2009-12-31 23:59:59'))
   end
 
   def test_default_record_now
@@ -67,7 +67,7 @@ class CachedRecordTest < Test::Unit::TestCase
       when 2010 then 7
       else 9
     end
-    assert_equal expected, TimeDependentRecord.default_record_now.id2
+    assert_equal expected, TimeDependentRecord.default_record_now.id
   end
 
   def test_default_value_now
@@ -85,15 +85,15 @@ class CachedRecordTest < Test::Unit::TestCase
       when 2010 then 'Seven'
       else 'Nine'
     end
-    assert_equal expected, TimeDependentRecord.default_value2_now
+    assert_equal expected, TimeDependentRecord.default_value_now
   end
 
   def test_multiple_predecessors
-    assert_equal [2, 5], TimeDependentRecord.find(3).predecessors.map{|r| r.id2}.sort
+    assert_equal [2, 5], TimeDependentRecord.find(3).predecessors.map{|r| r.id}.sort
   end
 
   def test_one_predecessor
-    assert_equal [8], TimeDependentRecord.find(9).predecessors.map{|r| r.id2}
+    assert_equal [8], TimeDependentRecord.find(9).predecessors.map{|r| r.id}
   end
 
   def test_no_predecessors
@@ -101,19 +101,19 @@ class CachedRecordTest < Test::Unit::TestCase
   end
 
   def test_record_at_same_period
-    assert_equal 3, TimeDependentRecord.find(3).record_at(DateTime.parse('2009-12-31 23:59:59')).id2
+    assert_equal 3, TimeDependentRecord.find(3).record_at(DateTime.parse('2009-12-31 23:59:59')).id
   end
 
   def test_record_at_next_period
-    assert_equal 4, TimeDependentRecord.find(3).record_at(DateTime.parse('2010-01-01 00:00:00')).id2
+    assert_equal 4, TimeDependentRecord.find(3).record_at(DateTime.parse('2010-01-01 00:00:00')).id
   end
 
   def test_record_at_future_period
-    assert_equal 4, TimeDependentRecord.find(2).record_at(DateTime.parse('2036-07-09')).id2
+    assert_equal 4, TimeDependentRecord.find(2).record_at(DateTime.parse('2036-07-09')).id
   end
 
   def test_record_at_within_long_period
-    assert_equal 8, TimeDependentRecord.find(8).record_at(DateTime.parse('2010-12-31 23:59:58')).id2
+    assert_equal 8, TimeDependentRecord.find(8).record_at(DateTime.parse('2010-12-31 23:59:58')).id
   end
 
   def test_record_at_with_no_replacement
@@ -125,7 +125,7 @@ class CachedRecordTest < Test::Unit::TestCase
   end
 
   def test_record_at_with_unique_predecessor
-    assert_equal 3, TimeDependentRecord.find(4).record_at(DateTime.parse('2009-01-01')).id2
+    assert_equal 3, TimeDependentRecord.find(4).record_at(DateTime.parse('2009-01-01')).id
   end
 
   def test_record_at_with_ambiguous_predecessor
@@ -137,7 +137,7 @@ class CachedRecordTest < Test::Unit::TestCase
   end
 
   def test_record_now
-    assert_equal 10, TimeDependentRecord.find(10).record_now.id2
+    assert_equal 10, TimeDependentRecord.find(10).record_now.id
   end
 
   def test_value_at
@@ -145,7 +145,7 @@ class CachedRecordTest < Test::Unit::TestCase
   end
 
   def test_value_at_alias
-    assert_equal 'Four', TimeDependentRecord.find(5).value2_at(DateTime.parse('2028-01-13'))
+    assert_equal 'Four', TimeDependentRecord.find(5).value_at(DateTime.parse('2028-01-13'))
   end
 
   def test_value_now
@@ -153,7 +153,7 @@ class CachedRecordTest < Test::Unit::TestCase
   end
 
   def test_value_now_alias
-    assert_equal 'Ten', TimeDependentRecord.find(10).value2_now
+    assert_equal 'Ten', TimeDependentRecord.find(10).value_now
   end
 
   def test_changes_until_without_changes
@@ -161,11 +161,11 @@ class CachedRecordTest < Test::Unit::TestCase
   end
 
   def test_changes_until_with_one_change
-    assert_equal [9], TimeDependentRecord.find(8).changes_until(DateTime.parse('2011-01-01')).map{|r| r.id2}
+    assert_equal [9], TimeDependentRecord.find(8).changes_until(DateTime.parse('2011-01-01')).map{|r| r.id}
   end
 
   def test_changes_until_with_multiple_changes
-    assert_equal [3, 4], TimeDependentRecord.find(2).changes_until(DateTime.parse('2034-01-01')).map{|r| r.id2}
+    assert_equal [3, 4], TimeDependentRecord.find(2).changes_until(DateTime.parse('2034-01-01')).map{|r| r.id}
   end
 
   def test_changes_until_with_imminent_expiry

@@ -5,14 +5,6 @@ require File.join(File.dirname(__FILE__), 'test_helper.rb')
 ####### Helper stuff
 
 module LineItemMethods
-  RENAMED_METHODS = {
-    :id => :id2, :type => :type2, :ledger_item_id => :ledger_item_id2,
-    :net_amount => :net_amount2, :tax_amount => :tax_amount2,
-    :description => :description2, :uuid => :uuid2, :tax_point => :tax_point2,
-    :tax_rate_id => :tax_rate_id2, :price_id => :price_id2,
-    :quantity => :quantity2, :creator_id => :creator_id2, :ledger_item => :ledger_item2
-  }
-
   def description2
     "moo"
   end
@@ -23,9 +15,10 @@ end
 
 class SuperLineItem < ActiveRecord::Base
   self.table_name = "line_item_records"
+  acts_as_line_item
+  belongs_to :ledger_item, :class_name => 'MyLedgerItem'
+
   include LineItemMethods
-  acts_as_line_item RENAMED_METHODS
-  belongs_to :ledger_item2, :class_name => 'MyLedgerItem', :foreign_key => 'ledger_item_id2'
 end
 
 class SubLineItem < SuperLineItem
@@ -51,7 +44,7 @@ end
 
 class OverwrittenMethodsNotPresentLineItem < ActiveRecord::Base
   self.table_name = "line_item_records"
-  acts_as_line_item LineItemMethods::RENAMED_METHODS
+  acts_as_line_item
 end
 
 
@@ -60,11 +53,11 @@ end
 class LineItemTest < Test::Unit::TestCase
 
   def test_net_amount_is_currency_value
-    assert_equal '$432.10', UntaxedLineItem.find(4).net_amount2_formatted
+    assert_equal '$432.10', UntaxedLineItem.find(4).net_amount_formatted
   end
 
   def test_tax_amount_is_currency_value
-    assert_equal '£15.00', SuperLineItem.find(1).tax_amount2_formatted
+    assert_equal '£15.00', SuperLineItem.find(1).tax_amount_formatted
   end
 
   def test_gross_amount
@@ -84,9 +77,9 @@ class LineItemTest < Test::Unit::TestCase
       uuid_gem_available = false
     end
     if uuid_gem_available
-      assert_match /^[0-9a-f]{8}\-[0-9a-f]{4}\-[0-9a-f]{4}\-[0-9a-f]{4}\-[0-9a-f]{12}$/, record.uuid2
+      assert_match /^[0-9a-f]{8}\-[0-9a-f]{4}\-[0-9a-f]{4}\-[0-9a-f]{4}\-[0-9a-f]{12}$/, record.uuid
     else
-      assert record.uuid2.blank?
+      assert record.uuid.blank?
       puts "Warning: uuid gem not installed -- not testing UUID generation"
     end
   end
@@ -94,7 +87,7 @@ class LineItemTest < Test::Unit::TestCase
   def test_uuid_gem_not_present
     begin
       real_uuid = Object.send(:remove_const, :UUID) rescue nil
-      UUIDNotPresentLineItem.acts_as_line_item(LineItemMethods::RENAMED_METHODS)
+      UUIDNotPresentLineItem.acts_as_line_item
       assert_nil UUIDNotPresentLineItem.new.get_class_info.uuid_generator
     ensure
       Object.send(:const_set, :UUID, real_uuid) unless real_uuid.nil?
@@ -104,12 +97,6 @@ class LineItemTest < Test::Unit::TestCase
   def test_must_provide_ledger_item_association
     assert_raise RuntimeError do
       OverwrittenMethodsNotPresentLineItem.new.ledger_item
-    end
-  end
-
-  def test_ledger_item_error
-    assert_raise RuntimeError do
-      SuperLineItem.find(1).ledger_item # not ledger_item2
     end
   end
 
@@ -129,5 +116,4 @@ class LineItemTest < Test::Unit::TestCase
   def test_sorted_scope_with_non_existent_column
     assert_equal [1,2,3,4,5,6,7,8], SuperLineItem.sorted(:this_column_does_not_exist).map{|i| i.id}
   end
-
 end

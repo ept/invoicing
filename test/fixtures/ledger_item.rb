@@ -24,6 +24,7 @@ end
 class MyLedgerItem < ActiveRecord::Base
   self.table_name = "ledger_item_records"
 end
+
 class MyInvoice < MyLedgerItem; end
 class InvoiceSubtype < MyInvoice; end
 class MyCreditNote < MyLedgerItem; end
@@ -67,3 +68,11 @@ ledger_item_entries.each do |entry|
 
   MyLedgerItem.create!(params)
 end
+
+Object.send(:remove_const, :LedgerItemRecord        )
+Object.send(:remove_const, :MyLedgerItem            )
+Object.send(:remove_const, :MyInvoice               )
+Object.send(:remove_const, :InvoiceSubtype          )
+Object.send(:remove_const, :MyCreditNote            )
+Object.send(:remove_const, :MyPayment               )
+Object.send(:remove_const, :CorporationTaxLiability )

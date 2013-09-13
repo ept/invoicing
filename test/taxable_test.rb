@@ -81,8 +81,8 @@ class TaxableTest < Test::Unit::TestCase
     assert_equal '$200.00', record.amount_formatted
     assert_equal '200', record.amount_before_type_cast
     record.save!
-    assert_equal([{'amount' => '200.0000'}],
-      ActiveRecord::Base.connection.select_all("SELECT amount FROM taxable_records WHERE id=#{record.id}"))
+    assert_equal([{'amount' => 200}],
+      ActiveRecord::Base.connection.select_all("SELECT amount FROM taxable_records WHERE id=#{record.id}").to_ary)
   end
 
   def test_remove_tax_on_existing_record
@@ -94,8 +94,8 @@ class TaxableTest < Test::Unit::TestCase
     assert_equal '£114.29', record.amount_taxed_formatted
     assert_equal 114.29, record.amount_taxed_before_type_cast
     record.save!
-    assert_equal([{'amount' => '100.0000'}],
-      ActiveRecord::Base.connection.select_all("SELECT amount FROM taxable_records WHERE id=1"))
+    assert_equal([{'amount' => 100}],
+      ActiveRecord::Base.connection.select_all("SELECT amount FROM taxable_records WHERE id=1").to_ary)
   end
 
   def test_remove_tax_on_new_record
@@ -106,8 +106,8 @@ class TaxableTest < Test::Unit::TestCase
     assert_equal '$360.00', record.amount_taxed_formatted
     assert_equal '360', record.amount_taxed_before_type_cast
     record.save!
-    assert_equal([{'amount' => '300.0000'}],
-      ActiveRecord::Base.connection.select_all("SELECT amount FROM taxable_records WHERE id=#{record.id}"))
+    assert_equal([{'amount' => 300}],
+      ActiveRecord::Base.connection.select_all("SELECT amount FROM taxable_records WHERE id=#{record.id}").to_ary)
   end
 
   def test_assign_taxed_then_untaxed
@@ -162,13 +162,15 @@ class TaxableTest < Test::Unit::TestCase
   end
 
   def test_with_tax_info
-    record = TaxableRecord.find(1)
+    record = TaxableRecord.new(currency_code: "GBP", amount: 123.45,
+                               gross_amount: 141.09, tax_factor: 0.142857143)
     assert_equal "£141.09 (inc. tax)", record.amount_with_tax_info
     assert_equal "£141.09", record.gross_amount_with_tax_info
   end
 
   def test_with_tax_details
-    record = TaxableRecord.find(1)
+    record = TaxableRecord.new(currency_code: "GBP", amount: 123.45,
+                               gross_amount: 141.09, tax_factor: 0.142857143)
     assert_equal "£141.09 (including 14.29% tax)", record.amount_with_tax_details
     assert_equal "£141.09 (tax not applicable)", record.gross_amount_with_tax_details
   end

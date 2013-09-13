@@ -2,10 +2,12 @@ require 'test/unit'
 require 'rubygems'
 require 'active_record'
 require 'active_support'
+require 'flexmock/test_unit'
+require 'pry-rails'
 
 $: << File.join(File.dirname(__FILE__), '..', 'lib')
 
-# ActiveSupport::Dependencies.load_paths << File.join(File.dirname(__FILE__), 'models')
+ActiveSupport::Dependencies.autoload_paths << File.join(File.dirname(__FILE__), 'models')
 
 require 'invoicing'
 
