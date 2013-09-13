@@ -39,3 +39,4 @@ class SurelyThereIsNoClassWithThisName < FindSubclassesNonExistent
 end
 
 FindSubclassesNonExistent.create!(value: "Badger", type: "SurelyThereIsNoClassWithThisName")
+Object.send(:remove_const, :SurelyThereIsNoClassWithThisName)

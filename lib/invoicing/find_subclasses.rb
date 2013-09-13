@@ -126,6 +126,31 @@ module Invoicing
       super(new_attrs, table_name)
     end
 
+    def expand_hash_conditions_for_aggregates(attrs)
+      new_attrs = {}
+
+      attrs.each_pair do |attr, value|
+        attr = attr_base = attr.to_s
+        attr_table_name = table_name
+
+        # Extract table name from qualified attribute names
+        attr_table_name, attr_base = attr.split('.', 2) if attr.include?('.')
+
+        if columns_hash.include?(attr_base) || ![self.table_name, quoted_table_name].include?(attr_table_name)
+          new_attrs[attr] = value   # Condition on a table column, or another table -- pass through unmodified
+        else
+          begin
+            matching_classes = select_matching_subclasses(attr_base, value)
+            new_attrs["#{self.table_name}.#{inheritance_column}"] = matching_classes.map{|cls| cls.name.to_s}
+          rescue NoMethodError
+            new_attrs[attr] = value # If the class method doesn't exist, fall back to passing condition through unmodified
+          end
+        end
+      end
+
+      super(new_attrs)
+    end
+
     # Returns a list of those classes within +known_subclasses+ which match a condition
     # <tt>method_name => value</tt>. May raise +NoMethodError+ if a class object does not
     # respond to +method_name+.

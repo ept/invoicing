@@ -5,16 +5,6 @@ require File.join(File.dirname(__FILE__), 'test_helper.rb')
 ####### Helper stuff
 
 module LedgerItemMethods
-  RENAMED_METHODS = {
-    :id => :id2, :type => :type2, :sender_id => :sender_id2, :recipient_id => :recipient_id2,
-    :sender_details => :sender_details2, :recipient_details => :recipient_details2,
-    :identifier => :identifier2, :issue_date => :issue_date2, :currency => :currency2,
-    :total_amount => :total_amount2, :tax_amount => :tax_amount2, :status => :status2,
-    :description => :description2, :period_start => :period_start2,
-    :period_end => :period_end2, :uuid => :uuid2, :due_date => :due_date2,
-    :line_items => :line_items2
-  }
-
   def user_id_to_details_hash(user_id)
     case user_id
       when 1, nil
@@ -37,16 +27,16 @@ module LedgerItemMethods
     end
   end
 
-  def sender_details2
-    user_id_to_details_hash(sender_id2)
+  def sender_details
+    user_id_to_details_hash(sender_id)
   end
 
-  def recipient_details2
-    user_id_to_details_hash(recipient_id2)
+  def recipient_details
+    user_id_to_details_hash(recipient_id)
   end
 
-  def description2
-    "#{type2} #{id2}"
+  def description
+    "#{type} #{id}"
   end
 end
 
@@ -56,8 +46,8 @@ end
 class MyLedgerItem < ActiveRecord::Base
   self.table_name = "ledger_item_records"
   include LedgerItemMethods
-  acts_as_ledger_item RENAMED_METHODS
-  has_many :line_items2, class_name: "SuperLineItem", foreign_key: "ledger_item_id"
+  acts_as_ledger_item
+  has_many :line_items, class_name: "SuperLineItem", foreign_key: "ledger_item_id"
 end
 
 class MyInvoice < MyLedgerItem
@@ -92,7 +82,7 @@ end
 
 class OverwrittenMethodsNotPresentLedgerItem < ActiveRecord::Base
   self.table_name = "ledger_item_records"
-  acts_as_invoice LedgerItemMethods::RENAMED_METHODS
+  acts_as_invoice
 end
 
 
@@ -102,24 +92,24 @@ class LedgerItemTest < Test::Unit::TestCase
 
   def test_total_amount_is_currency_value
     record = MyLedgerItem.find(5)
-    assert_equal '$432.10', record.total_amount2_formatted
+    assert_equal '$432.10', record.total_amount_formatted
   end
 
   def test_tax_amount_is_currency_value
     record = MyInvoice.find(1)
-    assert_equal '£15.00', record.tax_amount2_formatted
+    assert_equal '£15.00', record.tax_amount_formatted
   end
 
   def test_total_amount_negative_debit
     record = MyLedgerItem.find(5)
-    assert_equal '−$432.10', record.total_amount2_formatted(:debit => :negative, :self_id => record.recipient_id2)
-    assert_equal '$432.10', record.total_amount2_formatted(:debit => :negative, :self_id => record.sender_id2)
+    assert_equal '−$432.10', record.total_amount_formatted(:debit => :negative, :self_id => record.recipient_id)
+    assert_equal '$432.10', record.total_amount_formatted(:debit => :negative, :self_id => record.sender_id)
   end
 
   def test_total_amount_negative_credit
     record = MyLedgerItem.find(5)
-    assert_equal '−$432.10', record.total_amount2_formatted(:credit => :negative, :self_id => record.sender_id2)
-    assert_equal '$432.10', record.total_amount2_formatted(:credit => :negative, :self_id => record.recipient_id2)
+    assert_equal '−$432.10', record.total_amount_formatted(:credit => :negative, :self_id => record.sender_id)
+    assert_equal '$432.10', record.total_amount_formatted(:credit => :negative, :self_id => record.recipient_id)
   end
 
   def test_net_amount
@@ -239,30 +229,30 @@ class LedgerItemTest < Test::Unit::TestCase
   end
 
   def test_calculate_total_amount_for_new_invoice
-    invoice = MyInvoice.new(:currency2 => 'USD')
-    invoice.line_items2 << SuperLineItem.new(:net_amount2 => 100, :tax_amount2 => 15)
-    invoice.line_items2 << SubLineItem.new(:net_amount2 => 10)
+    invoice = MyInvoice.new(:currency => 'USD')
+    invoice.line_items << SuperLineItem.new(:net_amount => 100, :tax_amount => 15)
+    invoice.line_items << SubLineItem.new(:net_amount => 10)
     invoice.valid?
-    assert_equal BigDecimal('125'), invoice.total_amount2
-    assert_equal BigDecimal('15'), invoice.tax_amount2
+    assert_equal BigDecimal('125'), invoice.total_amount
+    assert_equal BigDecimal('15'), invoice.tax_amount
   end
 
   def test_calculate_total_amount_for_updated_invoice
     invoice = MyInvoice.find(9)
-    invoice.line_items2 << SuperLineItem.new(:net_amount2 => 10, :tax_amount2 => 1.5)
+    invoice.line_items << SuperLineItem.new(:net_amount2 => 10, :tax_amount2 => 1.5)
     invoice.save!
-    assert_equal([{'total_amount2' => '23.0000', 'tax_amount2' => '3.0000'}],
-      ActiveRecord::Base.connection.select_all("SELECT total_amount2, tax_amount2 FROM ledger_item_records WHERE id2=9"))
+    assert_equal([{'total_amount' => '23.0000', 'tax_amount' => '3.0000'}],
+      ActiveRecord::Base.connection.select_all("SELECT total_amount, tax_amount FROM ledger_item_records WHERE id2=9"))
   end
 
   def test_calculate_total_amount_for_updated_line_item
     # This might occur while an invoice is still open
     invoice = MyInvoice.find(9)
-    invoice.line_items2[0].net_amount2 = '20'
-    invoice.line_items2[0].tax_amount2 = 3
+    invoice.line_items[0].net_amount2 = '20'
+    invoice.line_items[0].tax_amount2 = 3
     invoice.save!
-    assert_equal([{'total_amount2' => '23.0000', 'tax_amount2' => '3.0000'}],
-      ActiveRecord::Base.connection.select_all("SELECT total_amount2, tax_amount2 FROM ledger_item_records WHERE id2=9"))
+    assert_equal([{'total_amount' => '23.0000', 'tax_amount' => '3.0000'}],
+      ActiveRecord::Base.connection.select_all("SELECT total_amount, tax_amount FROM ledger_item_records WHERE id2=9"))
     assert_equal BigDecimal('23'), invoice.total_amount2
     assert_equal BigDecimal('3'), invoice.tax_amount2
   end
@@ -271,12 +261,12 @@ class LedgerItemTest < Test::Unit::TestCase
     payment = MyPayment.new :total_amount2 => 23.45
     payment.save!
     assert_equal([{'total_amount2' => '23.4500'}],
-      ActiveRecord::Base.connection.select_all("SELECT total_amount2 FROM ledger_item_records WHERE id2=#{payment.id}"))
+      ActiveRecord::Base.connection.select_all("SELECT total_amount FROM ledger_item_records WHERE id=#{payment.id}"))
   end
 
   def test_line_items_error
     assert_raise RuntimeError do
-      MyInvoice.find(1).line_items # not line_items2
+      MyInvoice.find(1).line_items # not line_items
     end
   end
 
@@ -303,7 +293,7 @@ class LedgerItemTest < Test::Unit::TestCase
   end
 
   def test_account_summary_with_scope
-    conditions = ['issue_date2 >= ? AND issue_date2 < ?', DateTime.parse('2008-01-01'), DateTime.parse('2009-01-01')]
+    conditions = ['issue_date >= ? AND issue_date < ?', DateTime.parse('2008-01-01'), DateTime.parse('2009-01-01')]
     summary = MyLedgerItem.scoped(:conditions => conditions).account_summary(1, 2)
     assert_equal BigDecimal('257.50'), summary[:GBP].sales
     assert_equal BigDecimal('0.00'),   summary[:GBP].purchases
@@ -330,7 +320,7 @@ class LedgerItemTest < Test::Unit::TestCase
   end
 
   def test_account_summaries_with_scope
-    conditions = {:conditions => ['issue_date2 < ?', DateTime.parse('2008-07-01')]}
+    conditions = {:conditions => ['issue_date < ?', DateTime.parse('2008-07-01')]}
     summaries = MyLedgerItem.scoped(conditions).account_summaries(2)
     assert_equal [1, 3], summaries.keys
     assert_equal [:GBP], summaries[1].keys

@@ -789,6 +789,77 @@ module Invoicing
         result_map
       end
 
+      # TODO: Remove this
+      def merge_conditions(*conditions)
+        segments = []
+
+        conditions.each do |condition|
+          unless condition.blank?
+            sql = sanitize_sql(condition)
+            segments << sql unless sql.blank?
+          end
+        end
+
+        "(#{segments.join(') AND (')})" unless segments.empty?
+      end
+
+      # TODO: Remove this
+      def add_joins!(sql, joins, scope = :auto)
+        scope = scope(:find) if :auto == scope
+        merged_joins = scope && scope[:joins] && joins ? merge_joins(scope[:joins], joins) : (joins || scope && scope[:joins])
+        case merged_joins
+        when Symbol, Hash, Array
+          if array_of_strings?(merged_joins)
+            sql << merged_joins.join(' ') + " "
+          else
+            join_dependency = ActiveRecord::Associations::ClassMethods::InnerJoinDependency.new(self, merged_joins, nil)
+            sql << " #{join_dependency.join_associations.collect { |assoc| assoc.association_join }.join} "
+          end
+        when String
+          sql << " #{merged_joins} "
+        end
+      end
+
+      # TODO: Remove this
+      def add_conditions!(sql, conditions, scope = :auto)
+        scope = scope(:find) if :auto == scope
+        conditions = [conditions]
+        conditions << scope[:conditions] if scope
+        conditions << type_condition if finder_needs_type_condition?
+        merged_conditions = merge_conditions(*conditions)
+        sql << "WHERE #{merged_conditions} " unless merged_conditions.blank?
+      end
+
+      # TODO: Remove this
+      def add_order!(sql, order, scope = :auto)
+        scope = scope(:find) if :auto == scope
+        scoped_order = scope[:order] if scope
+        if order
+          sql << " ORDER BY #{order}"
+          if scoped_order && scoped_order != order
+            sql << ", #{scoped_order}"
+          end
+        else
+          sql << " ORDER BY #{scoped_order}" if scoped_order
+        end
+      end
+
+      def add_limit!(sql, options, scope = :auto)
+        # scope = scope(:find) if :auto == scope
+
+        # if scope
+        #   options[:limit] ||= scope[:limit]
+        #   options[:offset] ||= scope[:offset]
+        # end
+
+        # connection.add_limit_offset!(sql, options)
+      end
+
+      def add_lock!(sql, options, scope = :auto)
+        # scope = scope(:find) if :auto == scope
+        # options = options.reverse_merge(:lock => scope[:lock]) if scope
+        # connection.add_lock!(sql, options)
+      end
     end # module ClassMethods
 
 
