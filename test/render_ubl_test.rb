@@ -21,10 +21,12 @@ class RenderUBLTest < Test::Unit::TestCase
   end
 
   def test_render_ubl_invoice
+    SuperLineItem.where("id > 8").destroy_all
     assert_equivalent_xml reference_output('invoice1.xml'), MyInvoice.find(1).render_ubl
   end
 
   def test_render_ubl_self_billed_invoice
+    SuperLineItem.where("id > 8").destroy_all
     assert_equivalent_xml reference_output('invoice2.xml'), MyInvoice.find(2).render_ubl
   end
 
@@ -32,6 +34,8 @@ class RenderUBLTest < Test::Unit::TestCase
     #File.open(File.join(File.dirname(__FILE__), 'ref-output', 'debug3.xml'), 'w') do |f|
     #  f.syswrite(MyCreditNote.find(3).render_ubl)
     #end
+
+    SuperLineItem.where("id > 8").destroy_all
     assert_equivalent_xml reference_output('creditnote3.xml'),  MyCreditNote.find(3).render_ubl
   end
 

@@ -105,15 +105,18 @@ class LineItemTest < Test::Unit::TestCase
   end
 
   def test_in_effect_scope
+    SuperLineItem.where("id > 8").destroy_all
     assert_equal [1,2,3,4,5,6,7,8], SuperLineItem.all.map{|i| i.id}.sort
     assert_equal [1,2,3,4,5,6], SuperLineItem.in_effect.map{|i| i.id}.sort
   end
 
   def test_sorted_scope
+    SuperLineItem.where("id > 8").destroy_all
     assert_equal [4,2,1,5,3,6,7,8], SuperLineItem.sorted(:tax_point).map{|i| i.id}
   end
 
   def test_sorted_scope_with_non_existent_column
+    SuperLineItem.where("id > 8").destroy_all
     assert_equal [1,2,3,4,5,6,7,8], SuperLineItem.sorted(:this_column_does_not_exist).map{|i| i.id}
   end
 end

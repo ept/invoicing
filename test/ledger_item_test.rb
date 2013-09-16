@@ -381,40 +381,49 @@ class LedgerItemTest < Test::Unit::TestCase
   end
 
   def test_sent_by_scope
+    MyLedgerItem.where("id > 11").destroy_all
     assert_equal [2,5], MyLedgerItem.sent_by(2).map{|i| i.id}.sort
   end
 
   def test_received_by_scope
+    MyLedgerItem.where("id > 11").destroy_all
     assert_equal [1,3,4,7,8,9,10,11], MyLedgerItem.received_by(2).map{|i| i.id}.sort
   end
 
   def test_sent_or_received_by_scope
+    MyLedgerItem.where("id > 11").destroy_all
     assert_equal [1,2,3,4,5,7,8,9,10,11], MyLedgerItem.sent_or_received_by(2).map{|i| i.id}.sort
   end
 
   def test_in_effect_scope
+    MyLedgerItem.where("id > 11").destroy_all
     assert_equal [1,2,3,4,5,6,7,8,9,10,11], MyLedgerItem.all.map{|i| i.id}.sort
     assert_equal [1,2,3,4,5,6,11], MyLedgerItem.in_effect.map{|i| i.id}.sort
   end
 
   def test_open_or_pending_scope
+    MyLedgerItem.where("id > 11").destroy_all
     assert_equal [8,9], MyLedgerItem.open_or_pending.map{|i| i.id}.sort
   end
 
   def test_due_at_scope
+    MyLedgerItem.where("id > 11").destroy_all
     assert_equal [1,3,4,7,8,10,11], MyLedgerItem.due_at(DateTime.parse('2009-01-30')).map{|i| i.id}.sort
     assert_equal [1,2,3,4,7,8,10,11], MyLedgerItem.due_at(DateTime.parse('2009-01-31')).map{|i| i.id}.sort
   end
 
   def test_sorted_scope
+    MyLedgerItem.where("id > 11").destroy_all
     assert_equal [5,1,4,3,8,2,6,7,9,10,11], MyLedgerItem.sorted(:issue_date).map{|i| i.id}
   end
 
   def test_sorted_scope_with_non_existent_column
+    MyLedgerItem.where("id > 11").destroy_all
     assert_equal [1,2,3,4,5,6,7,8,9,10,11], MyLedgerItem.sorted(:this_column_does_not_exist).map{|i| i.id}
   end
 
   def test_exclude_empty_invoices_scope
+    MyLedgerItem.where("id > 11").destroy_all
     assert_equal [1,2,3,4,5,6,7,8,9,10], MyLedgerItem.exclude_empty_invoices.map{|i| i.id}.sort
   end
 

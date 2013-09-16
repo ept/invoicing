@@ -41,10 +41,10 @@ class RenderHTMLTest < Test::Unit::TestCase
 
   def test_render_empty_invoice
     invoice = MyInvoice.new
-    invoice.line_items2 << SuperLineItem.new
+    invoice.line_items << SuperLineItem.new
     invoice.save!
-    invoice.tax_amount2 = nil
-    invoice.total_amount2 = nil
+    invoice.tax_amount = nil
+    invoice.total_amount = nil
     rendered = invoice.render_html({:tax_point_column => true, :quantity_column => true,
       :description_column => true, :net_amount_column => true, :tax_amount_column => true,
       :gross_amount_column => true}) {|i| i.addresses_table{|x| ""}; i.description "foo" }
