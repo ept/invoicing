@@ -342,7 +342,7 @@ module Invoicing
 
         scope :due_at, lambda{ |date|
           due_date = connection.quote_column_name(info.method(:due_date))
-          {:conditions => ["#{due_date} <= ? OR #{due_date} IS NULL", date]}
+          where(["#{due_date} <= ? OR #{due_date} IS NULL", date])
         }
 
         scope :sorted, lambda{|column|
@@ -373,14 +373,8 @@ module Invoicing
           payment_classes = select_matching_subclasses(:is_payment, true).map{|c| c.name}
           is_payment_class = merge_conditions({info.method(:type) => payment_classes})
 
-          subquery = construct_finder_sql(
-            :select => "#{quoted_table_name}.*, COUNT(#{line_items_id}) AS number_of_line_items",
-            :joins => "LEFT JOIN #{line_items_table} ON #{ledger_item_foreign_key} = #{ledger_items_id}",
-            :group => Invoicing::ConnectionAdapterExt.group_by_all_columns(self)
-          )
-
-          {:from => "(#{subquery}) AS #{quoted_table_name}",
-           :conditions => "number_of_line_items > 0 OR #{is_payment_class}"}
+          joins("LEFT JOIN #{line_items_table} ON #{ledger_item_foreign_key} = #{ledger_items_id}").
+          where("(#{ledger_item_foreign_key} IS NULL) OR #{is_payment_class}")
         }
       end # def acts_as_ledger_item
 
