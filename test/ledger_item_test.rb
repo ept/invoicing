@@ -286,8 +286,8 @@ class LedgerItemTest < Test::Unit::TestCase
   end
 
   def test_account_summary_with_scope
-    conditions = ['issue_date >= ? AND issue_date < ?', DateTime.parse('2008-01-01'), DateTime.parse('2009-01-01')]
-    summary = MyLedgerItem.scoped(:conditions => conditions).account_summary(1, 2)
+    conditions = ["issue_date >= ? AND issue_date < ?", DateTime.parse('2008-01-01'), DateTime.parse('2009-01-01')]
+    summary = MyLedgerItem.where(conditions).account_summary(1, 2)
     assert_equal BigDecimal('257.50'), summary[:GBP].sales
     assert_equal BigDecimal('0.00'),   summary[:GBP].purchases
     assert_equal BigDecimal('256.50'), summary[:GBP].sale_receipts
@@ -313,8 +313,8 @@ class LedgerItemTest < Test::Unit::TestCase
   end
 
   def test_account_summaries_with_scope
-    conditions = {:conditions => ['issue_date < ?', DateTime.parse('2008-07-01')]}
-    summaries = MyLedgerItem.scoped(conditions).account_summaries(2)
+    conditions = ["issue_date < ?", DateTime.parse('2008-07-01')]
+    summaries = MyLedgerItem.where(conditions).account_summaries(2)
     assert_equal [1, 3], summaries.keys
     assert_equal [:GBP], summaries[1].keys
     assert_equal BigDecimal('315.00'),  summaries[1][:GBP].purchases
