@@ -229,7 +229,7 @@ module Invoicing
         info = time_dependent_class_info
 
         # List of all records whose validity period intersects the selected period
-        valid_records = cached_record_list.select do |record|
+        valid_records = all.select do |record|
           valid_from  = info.get(record, :valid_from)
           valid_until = info.get(record, :valid_until)
           has_taken_effect = (valid_from < not_after) # N.B. less than
@@ -248,7 +248,7 @@ module Invoicing
       # +valid_records_during+.
       def valid_records_at(point_in_time)
         info = time_dependent_class_info
-        cached_record_list.select do |record|
+        all.select do |record|
           valid_from  = info.get(record, :valid_from)
           valid_until = info.get(record, :valid_until)
           has_taken_effect = (valid_from <= point_in_time) # N.B. less than or equals
@@ -362,15 +362,9 @@ module Invoicing
 
     # Stores state in the ActiveRecord class object
     class ClassInfo < Invoicing::ClassInfo::Base #:nodoc:
-
-      def initialize(model_class, previous_info, args)
-        super
+      def predecessors(record)
         # @predecessors is a hash of an ID pointing to the list of all objects which have that ID
         # as replaced_by_id value
-        @predecessors = {}
-      end
-
-      def predecessors(record)
         @predecessors ||= fetch_predecessors
         @predecessors[get(record, :id)] || []
       end
