@@ -187,9 +187,6 @@ module Invoicing
       #   end
       #
       def acts_as_time_dependent(*args)
-        # Activate CachedRecord first, because ClassInfo#initialize expects the cache to be ready
-        acts_as_cached_record(*args)
-
         Invoicing::ClassInfo.acts_as(Invoicing::TimeDependent, self, args)
 
         # Create replaced_by association if it doesn't exist yet
@@ -371,17 +368,23 @@ module Invoicing
         # @predecessors is a hash of an ID pointing to the list of all objects which have that ID
         # as replaced_by_id value
         @predecessors = {}
-        for record in model_class.cached_record_list
-          id = get(record, :replaced_by_id)
-          unless id.nil?
-            @predecessors[id] ||= []
-            @predecessors[id] << record
-          end
-        end
       end
 
       def predecessors(record)
+        @predecessors ||= fetch_predecessors
         @predecessors[get(record, :id)] || []
+      end
+
+      def fetch_predecessors
+        _predecessors = {}
+        for record in model_class.all
+          id = get(record, :replaced_by_id)
+          unless id.nil?
+            _predecessors[id] ||= []
+            _predecessors[id] << record
+          end
+        end
+        _predecessors
       end
     end # class ClassInfo
   end # module TimeDependent
