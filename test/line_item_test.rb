@@ -47,12 +47,6 @@ end
 
 ####### The actual tests
 class LineItemTest < MiniTest::Unit::TestCase
-  def teardown
-    # remove the extra inserted fixtures
-    MyLedgerItem.where("id > ?", 11).destroy_all
-    SuperLineItem.where("id > ?", 8).destroy_all
-  end
-
   def test_net_amount_is_currency_value
     assert_equal '$432.10', UntaxedLineItem.find(4).net_amount_formatted
   end

@@ -21,13 +21,9 @@ class CachedRecordTest < MiniTest::Unit::TestCase
     end
   end
 
-  # Make a count of all the records, and delete them in teardown.
+  # Rebuild cache after doing a transaction rollback
   def setup
-    @record_count = CachedRecord.count
-  end
-
-  def teardown
-    CachedRecord.where("id > ?", @record_count).destroy_all
+    super
     CachedRecord.reload_cache
   end
 

@@ -84,12 +84,6 @@ end
 
 ## The actual tests
 class LedgerItemTest < MiniTest::Unit::TestCase
-  def teardown
-    # remove the extra inserted fixtures
-    MyLedgerItem.where("id > ?", 11).destroy_all
-    SuperLineItem.where("id > ?", 8).destroy_all
-  end
-
   def test_total_amount_is_currency_value
     record = MyLedgerItem.find(5)
     assert_equal '$432.10', record.total_amount_formatted
