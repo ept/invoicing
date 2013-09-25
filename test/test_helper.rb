@@ -1,5 +1,4 @@
 require "minitest/unit"
-require "test/unit"
 require "active_record"
 require "active_support"
 require "active_support/dependencies"
