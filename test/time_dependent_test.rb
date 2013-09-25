@@ -1,6 +1,6 @@
 require File.join(File.dirname(__FILE__), 'test_helper.rb')
 
-class CachedRecordTest < Test::Unit::TestCase
+class TimeDependentTest < Test::Unit::TestCase
 
   class TimeDependentRecord < ActiveRecord::Base
     # All columns are renamed to test renaming

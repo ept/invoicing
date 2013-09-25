@@ -1,13 +1,10 @@
 require File.join(File.dirname(__FILE__), 'test_helper.rb')
 
 # Associated with TestBaseclass
-
 class FindSubclassesAssociate < ActiveRecord::Base
 end
 
-
 # Primary hierarchy of classes for testing.
-
 class TestBaseclass < ActiveRecord::Base
   self.table_name = "find_subclasses_records"
   self.inheritance_column = "type_name" # usually left as default 'type'. rename to test renaming
@@ -18,7 +15,6 @@ class TestBaseclass < ActiveRecord::Base
 end
 
 class TestSubclass < TestBaseclass
-
 end
 
 class TestSubSubclass < TestSubclass
@@ -35,9 +31,7 @@ class TestOutsideModuleSubSubclass < TestModule::TestInsideModuleSubclass
   def self.coolness_factor; 999; end
 end
 
-
 # This class' table contains non-existent subclass names, to test errors
-
 class SomeSillySuperclass < ActiveRecord::Base
   extend Invoicing::FindSubclasses
   self.table_name = "find_subclasses_non_existents"
@@ -45,9 +39,7 @@ end
 
 
 #####################
-
-class FindSubclassesTest < Test::Unit::TestCase
-
+class FindSubclassesTest < MiniTest::Unit::TestCase
   def test_known_subclasses
     # All subclasses of TestBaseclass except for TestSubclassNotInDatabase
     expected = ['TestBaseclass', 'TestModule::TestInsideModuleSubclass', 'TestOutsideModuleSubSubclass',
@@ -61,7 +53,7 @@ class FindSubclassesTest < Test::Unit::TestCase
   end
 
   def test_error_when_unknown_type_is_encountered
-    assert_raise ActiveRecord::SubclassNotFound do
+    assert_raises ActiveRecord::SubclassNotFound do
       SomeSillySuperclass.known_subclasses
     end
   end
