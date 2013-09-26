@@ -311,73 +311,13 @@ module Invoicing
         info = ledger_item_class_info
         return unless info.previous_info.nil? # Called for the first time?
 
-        before_validation :calculate_total_amount
-
         # Set the 'amount' columns to act as currency values
         acts_as_currency_value(info.method(:total_amount), info.method(:tax_amount),
           :currency => info.method(:currency), :value_for_formatting => :value_for_formatting)
 
-        extend Invoicing::FindSubclasses
+        extend  Invoicing::FindSubclasses
         include Invoicing::LedgerItem::RenderHTML
         include Invoicing::LedgerItem::RenderUBL
-
-        # Dynamically created named scopes
-        scope :sent_by, lambda{ |sender_id|
-          where(info.method(:sender_id) => sender_id)
-        }
-
-        scope :received_by, lambda{ |recipient_id|
-          where(info.method(:recipient_id) => recipient_id)
-        }
-
-        scope :sent_or_received_by, lambda{ |sender_or_recipient_id|
-          sender_col = connection.quote_column_name(info.method(:sender_id))
-          recipient_col = connection.quote_column_name(info.method(:recipient_id))
-
-          where(["#{sender_col} = ? OR #{recipient_col} = ?",
-                  sender_or_recipient_id, sender_or_recipient_id])
-        }
-
-        scope :in_effect, -> { where(info.method(:status) => ['closed', 'cleared']) }
-
-        scope :open_or_pending, -> { where(info.method(:status) => ['open', 'pending']) }
-
-        scope :due_at, lambda{ |date|
-          due_date = connection.quote_column_name(info.method(:due_date))
-          where(["#{due_date} <= ? OR #{due_date} IS NULL", date])
-        }
-
-        scope :sorted, lambda{|column|
-          column = ledger_item_class_info.method(column).to_s
-          if column_names.include?(column)
-            order("#{connection.quote_column_name(column)}, #{connection.quote_column_name(primary_key)}")
-          else
-            order(connection.quote_column_name(primary_key))
-          end
-        }
-
-        scope :exclude_empty_invoices, lambda{
-          line_items_assoc_id = info.method(:line_items).to_sym
-          line_items_refl = reflections[line_items_assoc_id]
-          line_items_table = line_items_refl.quoted_table_name
-
-          # e.g. `ledger_items`.`id`
-          ledger_items_id = quoted_table_name + "." + connection.quote_column_name(primary_key)
-
-          # e.g. `line_items`.`id`
-          line_items_id = line_items_table + "." +
-            connection.quote_column_name(line_items_refl.klass.primary_key)
-
-          # e.g. `line_items`.`ledger_item_id`
-          ledger_item_foreign_key = line_items_table + "." + connection.quote_column_name(
-            line_items_refl.klass.send(:line_item_class_info).method(:ledger_item_id))
-
-          payment_classes = select_matching_subclasses(:is_payment, true).map{|c| c.name}
-          is_payment_class = merge_conditions({info.method(:type) => payment_classes})
-
-          joins("LEFT JOIN #{line_items_table} ON #{ledger_item_foreign_key} = #{ledger_items_id}").
-          where("(#{ledger_item_foreign_key} IS NULL) OR #{is_payment_class}")
-        }
       end # def acts_as_ledger_item
 
       # Synonym for <tt>acts_as_ledger_item :subtype => :invoice</tt>. All options other than
@@ -401,6 +341,68 @@ module Invoicing
         acts_as_ledger_item(options.clone.update({:subtype => :payment}))
       end
     end # module ActMethods
+
+    included do
+      before_validation :calculate_total_amount
+
+      # Dynamically created named scopes
+      scope :sent_by, lambda{ |sender_id|
+        where(ledger_item_class_info.method(:sender_id) => sender_id)
+      }
+
+      scope :received_by, lambda{ |recipient_id|
+        where(ledger_item_class_info.method(:recipient_id) => recipient_id)
+      }
+
+      scope :sent_or_received_by, lambda{ |sender_or_recipient_id|
+        sender_col = connection.quote_column_name(ledger_item_class_info.method(:sender_id))
+        recipient_col = connection.quote_column_name(ledger_item_class_info.method(:recipient_id))
+
+        where(["#{sender_col} = ? OR #{recipient_col} = ?",
+                sender_or_recipient_id, sender_or_recipient_id])
+      }
+
+      scope :in_effect, -> { where(ledger_item_class_info.method(:status) => ['closed', 'cleared']) }
+
+      scope :open_or_pending, -> { where(ledger_item_class_info.method(:status) => ['open', 'pending']) }
+
+      scope :due_at, lambda{ |date|
+        due_date = connection.quote_column_name(ledger_item_class_info.method(:due_date))
+        where(["#{due_date} <= ? OR #{due_date} IS NULL", date])
+      }
+
+      scope :sorted, lambda{|column|
+        column = ledger_item_class_info.method(column).to_s
+        if column_names.include?(column)
+          order("#{connection.quote_column_name(column)}, #{connection.quote_column_name(primary_key)}")
+        else
+          order(connection.quote_column_name(primary_key))
+        end
+      }
+
+      scope :exclude_empty_invoices, lambda{
+        line_items_assoc_id = ledger_item_class_info.method(:line_items).to_sym
+        line_items_refl = reflections[line_items_assoc_id]
+        line_items_table = line_items_refl.quoted_table_name
+
+        # e.g. `ledger_items`.`id`
+        ledger_items_id = quoted_table_name + "." + connection.quote_column_name(primary_key)
+
+        # e.g. `line_items`.`id`
+        line_items_id = line_items_table + "." +
+        connection.quote_column_name(line_items_refl.klass.primary_key)
+
+        # e.g. `line_items`.`ledger_item_id`
+        ledger_item_foreign_key = line_items_table + "." + connection.quote_column_name(
+                                                                                        line_items_refl.klass.send(:line_item_class_info).method(:ledger_item_id))
+
+        payment_classes = select_matching_subclasses(:is_payment, true).map{|c| c.name}
+        is_payment_class = merge_conditions({ledger_item_class_info.method(:type) => payment_classes})
+
+        joins("LEFT JOIN #{line_items_table} ON #{ledger_item_foreign_key} = #{ledger_items_id}").
+        where("(#{ledger_item_foreign_key} IS NULL) OR #{is_payment_class}")
+      }
+    end
 
     # Overrides the default constructor of <tt>ActiveRecord::Base</tt> when +acts_as_ledger_item+
     # is called. If the +uuid+ gem is installed, this constructor creates a new UUID and assigns
