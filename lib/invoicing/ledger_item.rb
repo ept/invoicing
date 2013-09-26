@@ -1,3 +1,6 @@
+require "invoicing/ledger_item/render_html"
+require "invoicing/ledger_item/render_ubl"
+
 module Invoicing
   # = Ledger item objects
   #
