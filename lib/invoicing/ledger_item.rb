@@ -1,3 +1,4 @@
+require "active_support/concern"
 require "invoicing/ledger_item/render_html"
 require "invoicing/ledger_item/render_ubl"
 
@@ -288,6 +289,7 @@ module Invoicing
   #                            included though). If you're chaining scopes it would be advantageous
   #                            to put this one close to the beginning of your scope chain.
   module LedgerItem
+    extend ActiveSupport::Concern
 
     module ActMethods
       # Declares that the current class is a model for ledger items (i.e. invoices, credit notes and
