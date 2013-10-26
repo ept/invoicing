@@ -2,6 +2,7 @@ module Invoicing
   module Generators
     class ModelsGenerator < Rails::Generators::Base
       desc "Generates models for ledger and taxable items"
+      namespace "invoicing"
 
       def create_models
         invoke "invoicing:tax_rate",    ["tax_rate"]
