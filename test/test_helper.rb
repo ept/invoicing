@@ -1,3 +1,6 @@
+require 'coveralls'
+Coveralls.wear!
+
 require "minitest/unit"
 require "active_record"
 require "active_support"
