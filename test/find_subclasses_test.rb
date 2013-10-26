@@ -1,4 +1,4 @@
-require File.join(File.dirname(__FILE__), 'test_helper.rb')
+require_relative 'test_helper'
 
 # Associated with TestBaseclass
 class FindSubclassesAssociate < ActiveRecord::Base

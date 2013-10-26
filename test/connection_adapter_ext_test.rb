@@ -1,4 +1,4 @@
-require File.join(File.dirname(__FILE__), 'test_helper.rb')
+require_relative 'test_helper.rb'
 
 class ConnectionAdapterExtTest < MiniTest::Unit::TestCase
   def using_database(database_type)

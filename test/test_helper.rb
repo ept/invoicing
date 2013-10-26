@@ -2,6 +2,9 @@ require 'coveralls'
 Coveralls.wear!
 
 require "minitest/unit"
+require "minitest/autorun"
+require "minitest/pride"
+
 require "active_record"
 require "active_support"
 require "active_support/dependencies"
@@ -63,8 +66,8 @@ end
 
 connect_to_testing_database
 
-require File.join(File.dirname(__FILE__), 'setup')
-
+fixtures_path = File.expand_path("../fixtures", __FILE__)
+Dir.glob(fixtures_path + "/*.rb").each { |f| require f }
 
 ENV['TZ'] = 'Etc/UTC' # timezone of values in database
 ActiveRecord::Base.default_timezone = :utc # timezone of created_at and updated_at

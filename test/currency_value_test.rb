@@ -1,6 +1,6 @@
 # encoding: utf-8
 
-require File.join(File.dirname(__FILE__), 'test_helper.rb')
+require_relative 'test_helper'
 
 # Test extending the default list of currency codes: include the Zimbabwe Dollar.
 # This also tests rounding and seriously large numbers. -- Sorry, you shouldn't make

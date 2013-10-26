@@ -1,5 +1,5 @@
 require "active_support/concern"
-require File.join(File.dirname(__FILE__), 'test_helper.rb')
+require_relative 'test_helper'
 
 # Mini implementation of the ClassInfo pattern, at which we can fire our tests
 module MyNamespace
