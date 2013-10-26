@@ -1,6 +1,6 @@
 require 'rails/generators/active_record'
 
-module ActiveRecord
+module Invoicing
   module Generators
     class LedgerItemGenerator < ActiveRecord::Generators::Base
       source_root File.expand_path("../templates", __FILE__)

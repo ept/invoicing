@@ -1,6 +1,6 @@
 require 'rails/generators/active_record'
 
-module ActiveRecord
+module Invoicing
   module Generators
     class TaxRateGenerator < ActiveRecord::Generators::Base
       source_root File.expand_path("../templates", __FILE__)
