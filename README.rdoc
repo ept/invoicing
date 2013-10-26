@@ -1,5 +1,9 @@
 = Ruby Invoicing Framework
 {<img src="https://travis-ci.org/code-mancers/invoicing.png?branch=master" alt="Build Status" />}[https://travis-ci.org/code-mancers/invoicing]
+{<img src="https://codeclimate.com/github/code-mancers/invoicing.png" />}[https://codeclimate.com/github/code-mancers/invoicing]
+{<img src="https://coveralls.io/repos/code-mancers/invoicing/badge.png" alt="Coverage Status" />}[https://coveralls.io/r/code-mancers/invoicing]
+{<img src="https://gemnasium.com/code-mancers/invoicing.png" alt="Dependency Status" />}[https://gemnasium.com/code-mancers/invoicing]
+{<img src="https://badge.fury.io/rb/invoicing.png" alt="Gem Version" />}[http://badge.fury.io/rb/invoicing]
 
 * {Website}[http://ept.github.com/invoicing/]
 * {API Docs}[http://rubydoc.info/github/ept/invoicing/frames/]
