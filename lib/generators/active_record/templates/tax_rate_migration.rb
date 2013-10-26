@@ -1,6 +1,6 @@
 class CreateInvoicingTaxable < ActiveRecord::Migration
   def change
-    create_table :tax_rates do |t|
+    create_table :invoicing_tax_rates do |t|
       t.string   :description
       t.decimal  :rate,           precision: 20, scale: 4
       t.datetime :valid_from,     null: false

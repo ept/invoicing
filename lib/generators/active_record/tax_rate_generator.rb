@@ -2,15 +2,15 @@ require 'rails/generators/active_record'
 
 module ActiveRecord
   module Generators
-    class TaxableGenerator < ActiveRecord::Generators::Base
+    class TaxRateGenerator < ActiveRecord::Generators::Base
       source_root File.expand_path("../templates", __FILE__)
 
       def copy_migration_file
-        migration_template "taxable_migration.rb", "db/migrate/invoicing_taxables.rb"
+        migration_template "tax_rate_migration.rb", "db/migrate/invoicing_tax_rates.rb"
       end
 
       def copy_model
-        template "taxable_model.rb", "app/models/tax_rate.rb"
+        template "tax_rate_model.rb", "app/models/invoicing_tax_rate.rb"
       end
     end
   end
