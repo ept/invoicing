@@ -346,45 +346,45 @@ module Invoicing
       before_validation :calculate_total_amount
 
       # Dynamically created named scopes
-      scope :sent_by, (lambda do |sender_id|
+      scope :sent_by, lambda { |sender_id|
         where(ledger_item_class_info.method(:sender_id) => sender_id)
-      end)
+      }
 
-      scope :received_by, (lambda do |recipient_id|
+      scope :received_by, lambda {|recipient_id|
         where(ledger_item_class_info.method(:recipient_id) => recipient_id)
-      end)
+      }
 
-      scope :sent_or_received_by, (lambda do |sender_or_recipient_id|
+      scope :sent_or_received_by, lambda { |sender_or_recipient_id|
         sender_col = connection.quote_column_name(ledger_item_class_info.method(:sender_id))
         recipient_col = connection.quote_column_name(ledger_item_class_info.method(:recipient_id))
 
         where(["#{sender_col} = ? OR #{recipient_col} = ?",
                 sender_or_recipient_id, sender_or_recipient_id])
-      end)
+        }
 
-      scope :in_effect, (lambda do
+      scope :in_effect, lambda {
         where(ledger_item_class_info.method(:status) => ['closed', 'cleared'])
-      end)
+      }
 
-      scope :open_or_pending, (lambda do
+      scope :open_or_pending, lambda {
         where(ledger_item_class_info.method(:status) => ['open', 'pending'])
-      end)
+      }
 
-      scope :due_at, (lambda do |date|
+      scope :due_at, lambda { |date|
         due_date = connection.quote_column_name(ledger_item_class_info.method(:due_date))
         where(["#{due_date} <= ? OR #{due_date} IS NULL", date])
-      end)
+      }
 
-      scope :sorted, (lambda do |column|
+      scope :sorted, lambda { |column|
         column = ledger_item_class_info.method(column).to_s
         if column_names.include?(column)
           order("#{connection.quote_column_name(column)}, #{connection.quote_column_name(primary_key)}")
         else
           order(connection.quote_column_name(primary_key))
         end
-      end)
+      }
 
-      scope :exclude_empty_invoices, (lambda do
+      scope :exclude_empty_invoices, lambda {
         line_items_assoc_id = ledger_item_class_info.method(:line_items).to_sym
         line_items_refl = reflections[line_items_assoc_id]
         line_items_table = line_items_refl.quoted_table_name
@@ -394,7 +394,7 @@ module Invoicing
 
         # e.g. `line_items`.`id`
         line_items_id = line_items_table + "." +
-        connection.quote_column_name(line_items_refl.klass.primary_key)
+          connection.quote_column_name(line_items_refl.klass.primary_key)
 
         # e.g. `line_items`.`ledger_item_id`
         ledger_item_foreign_key = line_items_table + "." + connection.quote_column_name(
@@ -405,7 +405,7 @@ module Invoicing
 
         joins("LEFT JOIN #{line_items_table} ON #{ledger_item_foreign_key} = #{ledger_items_id}").
         where("(#{ledger_item_foreign_key} IS NULL) OR #{is_payment_class}")
-      end)
+      }
     end
 
     # Overrides the default constructor of <tt>ActiveRecord::Base</tt> when +acts_as_ledger_item+
