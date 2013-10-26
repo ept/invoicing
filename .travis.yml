@@ -7,4 +7,4 @@ gemfile:
   - gemfiles/Gemfile.rails-3.2.13
 
 script:
-  - bundle exec rake
+  - bundle exec rake --trace
