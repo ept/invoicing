@@ -1,5 +1,6 @@
 # encoding: utf-8
-require File.join(File.dirname(__FILE__), 'test_helper.rb')
+
+require_relative 'test_helper'
 
 class TaxableTest < MiniTest::Unit::TestCase
   class SimpleTaxLogic

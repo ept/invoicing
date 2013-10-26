@@ -1,4 +1,4 @@
-require File.join(File.dirname(__FILE__), 'test_helper.rb')
+require_relative 'test_helper'
 
 class CachedRecordTest < MiniTest::Unit::TestCase
   # Classes which this test uses
