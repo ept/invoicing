@@ -2,7 +2,7 @@ require File.join(File.dirname(__FILE__), 'test_helper.rb')
 
 require 'rails/generators/test_case'
 require 'rails/generators/active_record'
-require 'generators/invoicing/invoicing_generator'
+require 'rails/generators/invoicing/invoicing_generator'
 
 class InvoicingGeneratorTest < Rails::Generators::TestCase
   TMP_PATH = File.expand_path("../tmp", File.dirname(__FILE__))
