@@ -4,13 +4,13 @@ require "active_support"
 require "active_support/dependencies"
 require "database_cleaner"
 require "flexmock/test_unit"
+require "fileutils"
 require "pry-rails"
 
-$: << File.join(File.dirname(__FILE__), '..', 'lib')
+require_relative "../lib/invoicing"
 
+# For automagically loading models from folder
 ActiveSupport::Dependencies.autoload_paths << File.join(File.dirname(__FILE__), 'models')
-
-require "invoicing"
 
 # Configure database cleaner
 DatabaseCleaner.strategy = :transaction
