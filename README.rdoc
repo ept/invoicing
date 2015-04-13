@@ -1,3 +1,5 @@
+For a more up-to-date version see {code-mancers/invoicing}[https://github.com/code-mancers/invoicing]!
+
 = Ruby Invoicing Framework
 
 * {Website}[http://ept.github.com/invoicing/]
