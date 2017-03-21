@@ -1,5 +1,8 @@
-%w[rubygems rake rake/clean fileutils newgem rubigen hoe].each { |f| require f }
-require File.dirname(__FILE__) + '/lib/invoicing'
+# %w[rubygems rake rake/clean fileutils newgem rubigen hoe].each { |f| require f }
+%w[rubygems rake rake/clean fileutils  hoe].each { |f| require f }
+
+$: << File.join(File.dirname(__FILE__), '..', 'lib')
+require "invoicing"
 
 # Hoe calls Ruby with the "-w" set by default; unfortunately, ActiveRecord (at version 2.2.2
 # at least) causes a lot of warnings internally, by no fault of our own, which clutters
@@ -25,10 +28,6 @@ $hoe = Hoe.spec 'invoicing' do |p|
     ['activerecord', '>= 2.1.0'],
     ['builder', '>= 2.0']
   ]
-  p.extra_dev_deps = [
-    ['newgem', ">= #{::Newgem::VERSION}"]
-    #['invoicing_generator', "= #{Invoicing::VERSION}"] - causes a circular dependency in rubygems < 1.2
-  ]
 
   p.test_globs = %w[test/*_test.rb] # do not include test/models/*.rb
   p.clean_globs |= %w[**/.DS_Store tmp *.log coverage]
@@ -36,7 +35,7 @@ $hoe = Hoe.spec 'invoicing' do |p|
   p.remote_rdoc_dir = 'doc'
 end
 
-require 'newgem/tasks' # load /tasks/*.rake
+# require 'newgem/tasks' # load /tasks/*.rake
 Dir['tasks/**/*.rake'].each { |t| load t }
 
 # Tasks to run by default

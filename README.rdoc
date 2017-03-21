@@ -1,6 +1,7 @@
 For a more up-to-date version see {code-mancers/invoicing}[https://github.com/code-mancers/invoicing]!
 
 = Ruby Invoicing Framework
+{<img src="https://travis-ci.org/code-mancers/invoicing.png?branch=master" alt="Build Status" />}[https://travis-ci.org/code-mancers/invoicing]
 
 * {Website}[http://ept.github.com/invoicing/]
 * {API Docs}[http://rubydoc.info/github/ept/invoicing/frames/]
